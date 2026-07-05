@@ -31,13 +31,17 @@ export function DiaryNight() {
   return (
     <div className="panel-wrap">
       <div className="panel diary" style={washi()}>
-        <div className="date">{dateLabel(entry.day)}</div>
-        <div className="picture">
-          {entry.icons.length > 0
-            ? entry.icons.map((ic, i) => <img key={i} src={iconSrc(ic)} alt="" style={{ transform: `rotate(${(i - 1) * 4}deg)` }} />)
-            : <span style={{ opacity: 0.4, fontSize: 15, letterSpacing: '0.2em' }}>月ばかりの夜</span>}
+        <div className="diary-body">
+          <div className="date">{dateLabel(entry.day)}</div>
+          <div className="picture">
+            {entry.icons.length > 0
+              ? entry.icons.map((ic, i) => <img key={i} src={iconSrc(ic)} alt="" style={{ transform: `rotate(${(i - 1) * 4}deg)` }} />)
+              : <span style={{ opacity: 0.4, fontSize: 15, letterSpacing: '0.2em' }}>月ばかりの夜</span>}
+          </div>
+          {entry.lines.map((l, i) => <div key={i} className="dline">{l}</div>)}
         </div>
-        {entry.lines.map((l, i) => <div key={i} className="dline">{l}</div>)}
+
+        {!openFact && <button className="sleep-btn" onClick={doSleep}>ねむる</button>}
 
         <div className="shiori-row">
           {entry.factIds.map(fid => (
@@ -57,8 +61,6 @@ export function DiaryNight() {
               : <button className="more" onClick={() => setDeep(true)}>……もっと</button>}
           </div>
         )}
-
-        {!openFact && <button className="sleep-btn" onClick={doSleep}>ねむる</button>}
       </div>
       {sleeping && (
         <div style={{

@@ -68,6 +68,7 @@
   display: flex; align-items: center; justify-content: center;
   background: rgba(20, 16, 24, 0.42);
   animation: fadein 0.4s ease-out;
+  padding: 12px; box-sizing: border-box;
 }
 @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
 .panel {
@@ -75,6 +76,8 @@
   border: 1.5px solid rgba(42,36,30,0.55); border-radius: 4px;
   box-shadow: 0 10px 40px rgba(10,8,6,0.5);
   padding: 26px 30px;
+  /* 短い横画面でも枠内に収める（ビューポート単位でなくコンテナ相対＝CSS回転でも正しい） */
+  max-height: 100%; box-sizing: border-box;
 }
 .panel .title { font-size: 15px; letter-spacing: 0.3em; color: var(--shu); text-align: center; margin-bottom: 18px; }
 
@@ -108,14 +111,19 @@
 .diary {
   width: min(560px, 90vw);
   position: relative;
+  display: flex; flex-direction: column; min-height: 0;
 }
+/* 栞タブ（右にはみ出す）と札カードは絶対配置のまま、本文だけを内部スクロールに。
+   「ねむる」はスクロール外に固定して、短い画面でも必ず見えるようにする */
+.diary-body { flex: 1 1 auto; overflow-y: auto; min-height: 0; }
+.diary .sleep-btn { flex: none; }
 .diary .date { font-size: 14px; letter-spacing: 0.3em; margin-bottom: 12px; color: var(--shu); }
 .diary .picture {
-  height: 170px; display: flex; align-items: flex-end; justify-content: center; gap: 6px;
+  height: 140px; display: flex; align-items: flex-end; justify-content: center; gap: 6px;
   border-bottom: 1px solid rgba(42,36,30,0.25);
-  margin-bottom: 16px; padding-bottom: 8px;
+  margin-bottom: 14px; padding-bottom: 8px;
 }
-.diary .picture img { height: 120px; }
+.diary .picture img { height: 100px; }
 .diary .dline { font-size: 19px; line-height: 2; letter-spacing: 0.1em; }
 .diary .shiori-row { position: absolute; right: -10px; top: 60px; display: flex; flex-direction: column; gap: 10px; }
 .shiori {
@@ -216,7 +224,7 @@
 
 /* 絵日記帳（閲覧） */
 .book {
-  width: min(600px, 92vw); max-height: 82vh; overflow-y: auto;
+  width: min(600px, 92vw); max-height: 100%; overflow-y: auto;
   position: relative;
 }
 .book .tabs { display: flex; gap: 10px; margin-bottom: 16px; }
@@ -283,6 +291,35 @@
 .story-hint {
   color: #8b877c; font-size: 13px; letter-spacing: 0.3em;
   animation: blink 1.8s infinite;
+}
+
+/* 縦画面ガード：推奨表示 → 5秒でCSS強制横 */
+.rotate-guard {
+  position: fixed; inset: 0; z-index: 300;
+  background: #17181c;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 18px;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+.rotate-phone {
+  width: 34px; height: 58px;
+  border: 3px solid #e8e6df; border-radius: 7px;
+  animation: rotate-hint 1.8s ease-in-out infinite;
+}
+@keyframes rotate-hint {
+  0%, 25% { transform: rotate(0deg); }
+  60%, 100% { transform: rotate(90deg); }
+}
+.rotate-text { color: #e8e6df; font-size: 17px; letter-spacing: 0.14em; }
+.rotate-count { color: #8b877c; font-size: 13px; letter-spacing: 0.1em; }
+
+/* 強制横画面：#root を90度回して縦端末でも横レイアウトに */
+html.force-landscape #root {
+  position: fixed; top: 0; left: 0;
+  width: 100vh; height: 100vw;
+  width: 100dvh; height: 100dvw;
+  transform: rotate(90deg) translate(0, -100%);
+  transform-origin: top left;
 }
 
 /* タイトル */

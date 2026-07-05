@@ -4,6 +4,7 @@ import { heldKeys, isMoveKey } from './game/live'
 import { SceneRoot } from './scene/SceneRoot'
 import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, Hud, Title, Prologue, Epilogue } from './game/ui/Ui'
 import { DiaryNight, DiaryBook } from './game/ui/Diary'
+import { OrientationGuard } from './game/ui/Orientation'
 import { initAmbience } from './engine/ambience'
 import './game/ui/ui.css'
 
@@ -80,6 +81,7 @@ export default function App() {
         {mode === 'epilogue' && <Epilogue />}
         {mode === 'title' && <Title />}
       </div>
+      <OrientationGuard />
     </div>
   )
 }
