@@ -222,14 +222,16 @@ export const useGame = create<GameState>((set, get) => ({
     }
     const day = s.day + 1
     const morning = DAY_EVENTS[day]?.morning
+    // 七日目の朝、萩の君の押し葉が図譜にも挟まる
+    const zufu = day === LAST_DAY && !s.zufu.includes('momiji') ? [...s.zufu, 'momiji'] : s.zufu
     set({
-      day, t: START_T, collected: [], talkedToday: [], dayEventDone: false,
+      day, t: START_T, collected: [], talkedToday: [], dayEventDone: false, zufu,
       mode: morning ? 'dialogue' : 'roam',
       dialogue: morning ? { lines: morning, i: 0, then: 'roam' } : null,
       target: null, pending: null, playerPos: [-3, -6],
     })
     writeSave({
-      day, outfit: s.outfit, zufu: s.zufu, talked: s.talked,
+      day, outfit: s.outfit, zufu, talked: s.talked,
       diary: s.diary, letterSeen: s.letterSeen, flags: s.flags,
     })
   },
@@ -281,6 +283,12 @@ function maybeEvening(set: Set, get: Get) {
 function resolve(id: string, set: Set, get: Get) {
   const s = get()
   if (id === 'bed') {
+    // 宵の出来事が残っていれば、先にそちらへ
+    const ev = DAY_EVENTS[s.day]?.evening
+    if (!s.dayEventDone && ev && s.t >= ev.at) {
+      maybeEvening(set, get)
+      return
+    }
     if (s.t >= 0.7 && (s.day !== 1 || s.letterSeen)) {
       openDiary(set, get)
     } else {
