@@ -70,12 +70,14 @@ export function DiaryNight() {
   )
 }
 
-// 絵日記帳（いつでも開ける：これまでの頁と図譜）
+// 絵日記帳（いつでも開ける：これまでの頁と図譜と栞）
 export function DiaryBook() {
   const diary = useGame(s => s.diary)
   const zufu = useGame(s => s.zufu)
   const setBookOpen = useGame(s => s.setBookOpen)
-  const [tab, setTab] = useState<'nikki' | 'zufu'>('zufu')
+  const [tab, setTab] = useState<'nikki' | 'zufu' | 'shiori'>('zufu')
+  const [openFact, setOpenFact] = useState<string | null>(null)
+  const learned = [...new Set(diary.flatMap(e => e.factIds))]
 
   return (
     <div className="panel-wrap" onClick={() => setBookOpen(false)}>
@@ -84,6 +86,7 @@ export function DiaryBook() {
         <div className="tabs">
           <button className={tab === 'zufu' ? 'on' : ''} onClick={() => setTab('zufu')}>草花の図譜</button>
           <button className={tab === 'nikki' ? 'on' : ''} onClick={() => setTab('nikki')}>これまでの頁</button>
+          <button className={tab === 'shiori' ? 'on' : ''} onClick={() => setTab('shiori')}>栞のたまり</button>
         </div>
 
         {tab === 'zufu' && (
@@ -112,6 +115,26 @@ export function DiaryBook() {
                 {e.lines.map((l, j) => <div key={j} className="dline">{l}</div>)}
               </div>
             ))
+        )}
+
+        {tab === 'shiori' && (
+          learned.length === 0
+            ? <div className="book-empty">栞は、まだ挟まっていない。</div>
+            : <div className="shiori-list">
+              {learned.map(fid => {
+                const f = factById(fid)
+                const open = openFact === fid
+                return (
+                  <div key={fid} className={`shiori-item${open ? ' open' : ''}`} onClick={() => setOpenFact(open ? null : fid)}>
+                    <div className="row">
+                      <span className="tag">{f.tag}</span>
+                      <span className="short">{f.short}</span>
+                    </div>
+                    {open && <div className="deep">{f.deep}</div>}
+                  </div>
+                )
+              })}
+            </div>
         )}
       </div>
     </div>

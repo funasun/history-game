@@ -8,8 +8,8 @@ export interface SaveData {
   zufu: string[]
   talked: Record<string, number>
   diary: DiaryEntry[]
-  letterDone: boolean
   letterSeen: boolean
+  flags: string[]
 }
 
 export function loadSave(): SaveData | null {
@@ -25,6 +25,12 @@ export function writeSave(data: SaveData) {
   try {
     localStorage.setItem(KEY, JSON.stringify(data))
   } catch { /* 保存できない環境では諦める */ }
+}
+
+export function clearSave() {
+  try {
+    localStorage.removeItem(KEY)
+  } catch { /* noop */ }
 }
 
 export function hasSave(): boolean {

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useGame } from '../store'
 import { tintColor } from '../../heian/palette'
 import { flowerById } from '../../heian/flowers'
@@ -120,6 +120,56 @@ export function Hud() {
       </div>
     </>
   )
+}
+
+// 令和の場面（プロローグ／エピローグ）：現代の書体で、一文ずつ
+function StorySlides({ slides, onDone, lastHint }: { slides: string[]; onDone: () => void; lastHint?: string }) {
+  const [i, setI] = useState(0)
+  const isLast = i + 1 >= slides.length
+  const next = () => { if (isLast) onDone(); else setI(i + 1) }
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault()
+        if (!e.repeat) next()
+      }
+    }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  })
+  return (
+    <div className="story-screen" onClick={next}>
+      <div className="story-line" key={i}>{slides[i]}</div>
+      <div className="story-hint">{isLast && lastHint ? lastHint : '▼'}</div>
+    </div>
+  )
+}
+
+const PROLOGUE_SLIDES = [
+  '令和八年、秋。おばあちゃんの家の、蔵のなか。',
+  'ほこりをかぶった箱に、ふるい絵の本があった。',
+  '表紙には、かすれた字で——『時渡り草子』。',
+  '頁をひらいたとたん、金いろの光があふれて、',
+  'わたしは、たおれるように、ねむってしまった。',
+]
+
+const EPILOGUE_SLIDES = [
+  '——目をさますと、蔵のなかだった。',
+  '手のなかに、あの草子。',
+  '頁は、七日ぶんの絵日記でいっぱいになっていた。',
+  'さいごの頁に、もみぢの押し葉が、ひとひら。',
+  '「またね、萩の君。」',
+  '千年まえの秋は、いまも、ここにある。',
+]
+
+export function Prologue() {
+  const wake = useGame(s => s.wake)
+  return <StorySlides slides={PROLOGUE_SLIDES} onDone={wake} />
+}
+
+export function Epilogue() {
+  const toTitle = useGame(s => s.toTitle)
+  return <StorySlides slides={EPILOGUE_SLIDES} onDone={toTitle} lastHint="おわり" />
 }
 
 export function Title() {

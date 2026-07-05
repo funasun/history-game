@@ -234,6 +234,44 @@
 .book-page img { height: 44px; margin-right: 4px; }
 .book-empty { font-size: 14px; opacity: 0.55; letter-spacing: 0.2em; padding: 20px 0; }
 
+/* 栞のたまり（絵日記帳） */
+.shiori-list { display: flex; flex-direction: column; gap: 8px; }
+.shiori-item {
+  border: 1px solid rgba(42,36,30,0.25); border-radius: 3px;
+  padding: 10px 14px; cursor: pointer;
+  background: rgba(255,252,240,0.5);
+}
+.shiori-item:hover { border-color: var(--shu); }
+.shiori-item .row { display: flex; align-items: baseline; gap: 12px; }
+.shiori-item .tag {
+  flex: none; font-size: 12px; color: var(--gofun); background: var(--shu);
+  border-radius: 2px; padding: 2px 8px; letter-spacing: 0.15em;
+}
+.shiori-item .short { font-size: 14.5px; letter-spacing: 0.05em; }
+.shiori-item .deep {
+  font-size: 13.5px; line-height: 1.9; margin-top: 10px;
+  padding-top: 8px; border-top: 1px dashed rgba(42,36,30,0.3);
+}
+
+/* 令和の場面（プロローグ／エピローグ） */
+.story-screen {
+  position: absolute; inset: 0;
+  background: #17181c;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 34px; cursor: pointer;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+.story-line {
+  color: #e8e6df; font-size: 20px; letter-spacing: 0.12em; line-height: 2;
+  max-width: 78vw; text-align: center;
+  animation: storyfade 0.7s ease-out;
+}
+@keyframes storyfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.story-hint {
+  color: #8b877c; font-size: 13px; letter-spacing: 0.3em;
+  animation: blink 1.8s infinite;
+}
+
 /* タイトル */
 .title-screen {
   position: absolute; inset: 0;

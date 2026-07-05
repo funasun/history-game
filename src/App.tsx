@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useGame } from './game/store'
 import { heldKeys, isMoveKey } from './game/live'
 import { SceneRoot } from './scene/SceneRoot'
-import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, Hud, Title } from './game/ui/Ui'
+import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, Hud, Title, Prologue, Epilogue } from './game/ui/Ui'
 import { DiaryNight, DiaryBook } from './game/ui/Diary'
 import { initAmbience } from './engine/ambience'
 import './game/ui/ui.css'
@@ -76,6 +76,8 @@ export default function App() {
         {mode === 'letter' && <LetterView />}
         {mode === 'diary' && <DiaryNight />}
         {bookOpen && <DiaryBook />}
+        {mode === 'prologue' && <Prologue />}
+        {mode === 'epilogue' && <Epilogue />}
         {mode === 'title' && <Title />}
       </div>
     </div>

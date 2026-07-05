@@ -1,18 +1,19 @@
 import { create } from 'zustand'
-import { getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, LETTER_LINES, BED_EARLY } from '../heian/dialogues'
+import { getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, BED_EARLY } from '../heian/dialogues'
+import { DAY_EVENTS, LAST_DAY } from '../heian/days'
 import { CHARACTERS, charById, charPos } from '../heian/characters'
 import { FLOWER_SPOTS, flowerById } from '../heian/flowers'
 import { BED } from '../heian/layout'
-import { loadSave, writeSave } from '../engine/save'
+import { loadSave, writeSave, clearSave } from '../engine/save'
 import { playerWorld } from './live'
 
-export type Mode = 'title' | 'dialogue' | 'outfit' | 'roam' | 'letter' | 'diary'
+export type Mode = 'title' | 'prologue' | 'dialogue' | 'outfit' | 'roam' | 'letter' | 'diary' | 'epilogue'
 type Then = 'outfit' | 'letter' | 'roam'
 
 export interface DialogueLine {
   speaker?: string
   text: string
-  choices?: { label: string; lines?: DialogueLine[] }[]
+  choices?: { label: string; lines?: DialogueLine[]; flag?: string }[]
 }
 
 export interface DiaryEntry {
@@ -30,8 +31,10 @@ interface GameState {
   collected: string[]              // 今日摘んだ花のスポットid
   zufu: string[]                   // 図譜（種類）
   talked: Record<string, number>
-  letterDone: boolean
+  talkedToday: string[]
   letterSeen: boolean
+  dayEventDone: boolean            // その日の宵の出来事
+  flags: string[]
   diary: DiaryEntry[]
   dialogue: { lines: DialogueLine[]; i: number; then: Then } | null
   target: [number, number] | null
@@ -41,6 +44,8 @@ interface GameState {
   toast: string | null             // flower species id
 
   start: (fresh: boolean) => void
+  wake: () => void
+  toTitle: () => void
   tick: (dt: number) => void
   walkTo: (x: number, z: number) => void
   interact: (id: string) => void
@@ -79,8 +84,10 @@ export const useGame = create<GameState>((set, get) => ({
   collected: [],
   zufu: [],
   talked: {},
-  letterDone: false,
+  talkedToday: [],
   letterSeen: false,
+  dayEventDone: false,
+  flags: [],
   diary: [],
   dialogue: null,
   target: null,
@@ -92,21 +99,29 @@ export const useGame = create<GameState>((set, get) => ({
   start: (fresh) => {
     const save = fresh ? null : loadSave()
     if (save) {
+      const morning = DAY_EVENTS[save.day]?.morning
       set({
-        mode: 'roam', day: save.day, t: START_T, outfit: save.outfit,
+        day: save.day, t: START_T, outfit: save.outfit,
         zufu: save.zufu, talked: save.talked, diary: save.diary,
-        letterDone: save.letterDone, letterSeen: save.letterSeen,
-        collected: [], playerPos: [-3, -6], dialogue: null,
+        letterSeen: save.letterSeen, flags: save.flags ?? [],
+        collected: [], talkedToday: [], dayEventDone: false,
+        playerPos: [-3, -6],
+        mode: morning ? 'dialogue' : 'roam',
+        dialogue: morning ? { lines: morning, i: 0, then: 'roam' } : null,
       })
     } else {
       set({
-        mode: 'dialogue', day: 1, t: START_T, outfit: null,
-        zufu: [], talked: {}, diary: [], letterDone: false, letterSeen: false,
-        collected: [], playerPos: [-3, -6],
-        dialogue: { lines: WAKE_LINES, i: 0, then: 'outfit' },
+        mode: 'prologue', day: 1, t: START_T, outfit: null,
+        zufu: [], talked: {}, talkedToday: [], diary: [],
+        letterSeen: false, dayEventDone: false, flags: [],
+        collected: [], playerPos: [-3, -6], dialogue: null,
       })
     }
   },
+
+  wake: () => set({ mode: 'dialogue', dialogue: { lines: WAKE_LINES, i: 0, then: 'outfit' } }),
+
+  toTitle: () => set({ mode: 'title', dialogue: null }),
 
   tick: (dt) => {
     const s = get()
@@ -169,7 +184,9 @@ export const useGame = create<GameState>((set, get) => ({
     let lines = d.lines
     if (line.choices) {
       if (choice == null) return
-      const extra = line.choices[choice].lines ?? []
+      const chosen = line.choices[choice]
+      if (chosen.flag && !s.flags.includes(chosen.flag)) set({ flags: [...s.flags, chosen.flag] })
+      const extra = chosen.lines ?? []
       lines = [...d.lines.slice(0, d.i + 1), ...extra, ...d.lines.slice(d.i + 1)]
     }
     if (d.i + 1 < lines.length) {
@@ -198,14 +215,22 @@ export const useGame = create<GameState>((set, get) => ({
 
   sleep: () => {
     const s = get()
+    if (s.day >= LAST_DAY) {
+      clearSave()
+      set({ mode: 'epilogue', dialogue: null, target: null, pending: null })
+      return
+    }
     const day = s.day + 1
+    const morning = DAY_EVENTS[day]?.morning
     set({
-      day, t: START_T, collected: [], mode: 'roam',
-      dialogue: null, target: null, pending: null, playerPos: [-3, -6],
+      day, t: START_T, collected: [], talkedToday: [], dayEventDone: false,
+      mode: morning ? 'dialogue' : 'roam',
+      dialogue: morning ? { lines: morning, i: 0, then: 'roam' } : null,
+      target: null, pending: null, playerPos: [-3, -6],
     })
     writeSave({
       day, outfit: s.outfit, zufu: s.zufu, talked: s.talked,
-      diary: s.diary, letterDone: s.letterDone, letterSeen: s.letterSeen,
+      diary: s.diary, letterSeen: s.letterSeen, flags: s.flags,
     })
   },
 
@@ -243,10 +268,12 @@ function beat(set: Set, get: Get) {
 
 function maybeEvening(set: Set, get: Get) {
   const s = get()
-  if (s.mode === 'roam' && s.day === 1 && s.t >= 0.6 && !s.letterDone) {
+  if (s.mode !== 'roam' || s.dayEventDone) return
+  const ev = DAY_EVENTS[s.day]?.evening
+  if (ev && s.t >= ev.at) {
     set({
-      letterDone: true, target: null, pending: null, mode: 'dialogue',
-      dialogue: { lines: LETTER_LINES, i: 0, then: 'letter' },
+      dayEventDone: true, target: null, pending: null, mode: 'dialogue',
+      dialogue: { lines: ev.lines, i: 0, then: ev.then ?? 'roam' },
     })
   }
 }
@@ -264,10 +291,11 @@ function resolve(id: string, set: Set, get: Get) {
   if (id.startsWith('char:')) {
     const charId = id.slice(5)
     const lines = getDialogue(charId, {
-      talked: s.talked, zufu: s.zufu, letterSeen: s.letterSeen, day: s.day,
+      talked: s.talked, zufu: s.zufu, letterSeen: s.letterSeen, day: s.day, flags: s.flags,
     })
     set({
       talked: { ...s.talked, [charId]: (s.talked[charId] ?? 0) + 1 },
+      talkedToday: s.talkedToday.includes(charId) ? s.talkedToday : [...s.talkedToday, charId],
       mode: 'dialogue',
       dialogue: { lines, i: 0, then: 'roam' },
     })
@@ -291,6 +319,11 @@ function openDiary(set: Set, get: Get) {
   const lines: string[] = []
   const icons: string[] = []
   const factIds: string[] = []
+  const dayEv = DAY_EVENTS[s.day]
+
+  if (dayEv?.diaryLine) lines.push(dayEv.diaryLine)
+  if (dayEv?.facts) factIds.push(...dayEv.facts)
+  if (dayEv?.icons) icons.push(...dayEv.icons)
 
   const species = [...new Set(s.collected.map(id => FLOWER_SPOTS.find(f => f.id === id)!.species))]
   if (species.length >= 3) {
@@ -300,25 +333,31 @@ function openDiary(set: Set, get: Get) {
   }
   icons.push(...species)
 
-  if (s.day === 1 && s.letterSeen) {
-    lines.push('萩の君から、もみぢの文をもらった。')
-    icons.push('letter')
-    factIds.push('fumi')
-  } else if ((s.talked['hagi'] ?? 0) > 0 && lines.length < 2) {
-    lines.push('萩の君と話した。')
+  if (s.day === 1) {
+    if (s.letterSeen) {
+      lines.push('萩の君から、もみぢの文をもらった。')
+      icons.push('letter')
+      factIds.push('fumi')
+    }
+    if (species.length > 0) factIds.push((s.zufu.length >= 3 && (s.talked['kojiju'] ?? 0) >= 2) ? 'nanakusa' : 'akikusa')
+    if ((s.talked['aruji'] ?? 0) >= 2) factIds.push('sekkan')
+    factIds.push(s.outfit ? 'kasane' : 'shinden')
   }
 
-  if (species.length > 0) factIds.push((s.zufu.length >= 3 && (s.talked['kojiju'] ?? 0) >= 2) ? 'nanakusa' : 'akikusa')
-  if ((s.talked['aruji'] ?? 0) >= 2) factIds.push('sekkan')
-  if (s.day === 1) factIds.push(s.outfit ? 'kasane' : 'shinden')
+  // その日の会話から加わる栞
+  if (dayEv?.talkFacts) {
+    for (const [charId, factId] of Object.entries(dayEv.talkFacts)) {
+      if (s.talkedToday.includes(charId)) factIds.push(factId)
+    }
+  }
 
   if (lines.length === 0) lines.push('けふは、ただ庭をあるいた。')
 
   const entry: DiaryEntry = {
     day: s.day,
     lines: lines.slice(0, 2),
-    icons: icons.slice(0, 5),
-    factIds: [...new Set(factIds)].slice(0, 2),
+    icons: [...new Set(icons)].slice(0, 5),
+    factIds: [...new Set(factIds)].slice(0, 3),
   }
   set({ diary: [...s.diary, entry], mode: 'diary' })
 }
