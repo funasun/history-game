@@ -156,14 +156,27 @@ function Roof({ x, z, w, d, y, thin }: { x: number; z: number; w: number; d: num
   )
 }
 
-// 立体の木：幹＋岩絵具の葉むら
+// 立体の木：幹＋岩絵具の葉むら（日を追うごとに紅葉が深まる）
+const DEEP_MAPLE: Record<string, string> = {
+  [P.shu]: '#8f2015',
+  [P.kuchiba]: '#9c4318',
+  [P.yamabuki]: '#c05a1e',
+}
+
 function Tree3D({ x, z, kind, s }: { x: number; z: number; kind: 'maple' | 'pine'; s: number }) {
+  const day = useGame(st => st.day)
+  const autumn = useMemo(() => {
+    const k = Math.min((day - 1) / 6, 1)
+    return (c: string) => kind === 'maple'
+      ? '#' + new THREE.Color(c).lerp(new THREE.Color(DEEP_MAPLE[c] ?? c), k).getHexString()
+      : c
+  }, [day, kind])
   const blobs = kind === 'maple'
     ? [
-        { dx: 0, dy: 2.4, dz: 0, r: 1.15, c: P.shu },
-        { dx: -0.85, dy: 2.0, dz: 0.25, r: 0.85, c: P.kuchiba },
-        { dx: 0.8, dy: 2.1, dz: -0.15, r: 0.8, c: P.yamabuki },
-        { dx: 0.25, dy: 2.9, dz: 0.15, r: 0.7, c: P.shu },
+        { dx: 0, dy: 2.4, dz: 0, r: 1.15, c: autumn(P.shu) },
+        { dx: -0.85, dy: 2.0, dz: 0.25, r: 0.85, c: autumn(P.kuchiba) },
+        { dx: 0.8, dy: 2.1, dz: -0.15, r: 0.8, c: autumn(P.yamabuki) },
+        { dx: 0.25, dy: 2.9, dz: 0.15, r: 0.7, c: autumn(P.shu) },
       ]
     : [
         { dx: 0, dy: 2.6, dz: 0, r: 1.05, c: P.rokusho },
