@@ -4,7 +4,8 @@ import * as THREE from 'three'
 import { useGame } from '../game/store'
 import { skyColor } from '../heian/palette'
 import { World } from './World'
-import { Player, playerWorld, Characters, Flowers, Bed } from './actors'
+import { Player, Characters, Flowers, Bed } from './actors'
+import { playerWorld } from '../game/live'
 
 function Atmosphere() {
   const scene = useThree(s => s.scene)

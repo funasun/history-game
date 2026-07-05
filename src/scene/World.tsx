@@ -6,7 +6,7 @@ import { useGame } from '../game/store'
 import { P } from '../heian/palette'
 import { FLOORS, PILLARS, MISU, POND, ISLAND, STREAM, TREES, BOUNDS, KICHO, blocked } from '../heian/layout'
 import { toTexture, misuCanvas, kichoCanvas } from '../engine/textures'
-import { playerWorld } from './actors'
+import { playerWorld } from '../game/live'
 
 const HIWADA = '#4f3d2f'   // 桧皮葺
 const RIDGE = '#3a2d22'

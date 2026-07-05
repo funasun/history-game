@@ -1,0 +1,28 @@
+// フレームごとに動く生の状態（storeを介さない共有）
+import * as THREE from 'three'
+
+export const playerWorld = new THREE.Vector3(-3, 0, -6)
+
+// 押されている移動キー
+export const heldKeys = new Set<string>()
+
+const DIRS: Record<string, [number, number]> = {
+  ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+  w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0],
+}
+
+export function isMoveKey(key: string): boolean {
+  return key in DIRS
+}
+
+// 押下中キーの合成方向（正規化）。押されていなければ null
+export function keyDir(): [number, number] | null {
+  let x = 0, z = 0
+  for (const k of heldKeys) {
+    const d = DIRS[k]
+    if (d) { x += d[0]; z += d[1] }
+  }
+  if (x === 0 && z === 0) return null
+  const len = Math.hypot(x, z)
+  return [x / len, z / len]
+}

@@ -4,6 +4,7 @@ import { CHARACTERS, charById, charPos } from '../heian/characters'
 import { FLOWER_SPOTS, flowerById } from '../heian/flowers'
 import { BED } from '../heian/layout'
 import { loadSave, writeSave } from '../engine/save'
+import { playerWorld } from './live'
 
 export type Mode = 'title' | 'dialogue' | 'outfit' | 'roam' | 'letter' | 'diary'
 type Then = 'outfit' | 'letter' | 'roam'
@@ -43,6 +44,7 @@ interface GameState {
   tick: (dt: number) => void
   walkTo: (x: number, z: number) => void
   interact: (id: string) => void
+  interactNearest: () => void
   arrive: (x: number, z: number) => void
   next: (choice?: number) => void
   chooseOutfit: (color: string) => void
@@ -126,12 +128,20 @@ export const useGame = create<GameState>((set, get) => ({
     set({ target: [x, z], pending: null })
   },
 
+  // キー操作：目の前のものに触れる
+  interactNearest: () => {
+    const s = get()
+    if (s.mode !== 'roam') return
+    const near = nearestInteractable(playerWorld.x, playerWorld.z, s, 1.7)
+    if (near) get().interact(near)
+  },
+
   interact: (id) => {
     const s = get()
     if (s.mode !== 'roam') return
     const pos = interactablePos(id, s.t)
     if (!pos) return
-    const [px, pz] = s.playerPos
+    const px = playerWorld.x, pz = playerWorld.z
     const d = Math.hypot(pos[0] - px, pos[1] - pz)
     if (d < 1.4) {
       set({ target: null })
@@ -205,7 +215,7 @@ export const useGame = create<GameState>((set, get) => ({
 
 if (import.meta.env.DEV) (window as unknown as { game: typeof useGame }).game = useGame
 
-function nearestInteractable(x: number, z: number, s: GameState): string | null {
+function nearestInteractable(x: number, z: number, s: GameState, radius = 1.3): string | null {
   const cand: [string, number, number][] = []
   for (const c of CHARACTERS) {
     const [cx, cz] = charPos(c, s.t)
@@ -216,7 +226,7 @@ function nearestInteractable(x: number, z: number, s: GameState): string | null 
   }
   cand.push(['bed', BED.x, BED.z])
   let best: string | null = null
-  let bestD = 1.3
+  let bestD = radius
   for (const [id, cx, cz] of cand) {
     const d = Math.hypot(cx - x, cz - z)
     if (d < bestD) { bestD = d; best = id }

@@ -7,8 +7,7 @@ import { FLOWER_SPOTS, flowerById } from '../heian/flowers'
 import { BED, blocked, groundY } from '../heian/layout'
 import { P } from '../heian/palette'
 import { toTexture, flowerCanvas, haloCanvas, faceCanvas, type FigureKind } from '../engine/textures'
-
-export const playerWorld = new THREE.Vector3(-3, 0, -6)
+import { playerWorld, keyDir } from '../game/live'
 
 const noRaycast = () => null
 const SKIN = '#f0e2c8'
@@ -147,10 +146,33 @@ export function Player() {
   const pos = useRef(new THREE.Vector3(-3, 0, -6))
   const rotY = useRef(0)
 
+  const syncAcc = useRef(0)
+
   useFrame((_, dt) => {
     const s = useGame.getState()
     const p = pos.current
-    if (s.target) {
+    const dir = s.mode === 'roam' ? keyDir() : null
+    if (dir) {
+      // キー移動：タップ目的地は破棄
+      if (s.target || s.pending) useGame.setState({ target: null, pending: null })
+      const step = 3.4 * dt
+      let nx = p.x + dir[0] * step
+      let nz = p.z + dir[1] * step
+      if (blocked(nx, nz)) {
+        if (!blocked(nx, p.z)) nz = p.z
+        else if (!blocked(p.x, nz)) nx = p.x
+        else { nx = p.x; nz = p.z }
+      }
+      if (Math.hypot(nx - p.x, nz - p.z) > 0.0001) {
+        rotY.current = turnToward(rotY.current, Math.atan2(nx - p.x, nz - p.z), Math.min(1, 12 * dt))
+        p.x = nx; p.z = nz
+      }
+      syncAcc.current += dt
+      if (syncAcc.current > 0.15) {
+        syncAcc.current = 0
+        useGame.setState({ playerPos: [p.x, p.z] })
+      }
+    } else if (s.target) {
       const [tx, tz] = s.target
       const dx = tx - p.x, dz = tz - p.z
       const d = Math.hypot(dx, dz)
@@ -173,6 +195,10 @@ export function Player() {
     } else {
       // 立ち止まったらこちら（南）を向く
       rotY.current = turnToward(rotY.current, 0, Math.min(1, 4 * dt))
+    }
+    if (!dir && syncAcc.current > 0) {
+      syncAcc.current = 0
+      useGame.setState({ playerPos: [p.x, p.z] })
     }
     const gy = groundY(p.x, p.z)
     playerWorld.set(p.x, gy, p.z)
