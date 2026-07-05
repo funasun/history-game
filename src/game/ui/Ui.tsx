@@ -107,6 +107,9 @@ export function Hud() {
   return (
     <>
       <div className="hud-book" style={washi()} onClick={() => setBookOpen(true)}>絵日記</div>
+      <div className="hud-pages">
+        {Array.from({ length: 7 }, (_, i) => <span key={i} className={i < day ? 'on' : ''} />)}
+      </div>
       <div className="hud-time">
         <svg width="72" height="46" viewBox="0 0 72 46">
           <path d="M 8 40 A 28 32 0 0 1 64 40" fill="none" stroke="rgba(244,238,218,0.5)" strokeWidth="1.4" strokeDasharray="2 4" />
