@@ -1,0 +1,262 @@
+:root {
+  --sumi: #2a241e;
+  --shu: #c73e3a;
+  --kin: #c8a24b;
+  --gofun: #f4eeda;
+}
+
+.ui-layer {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", "YuMincho", serif;
+  color: var(--sumi);
+}
+.ui-layer > * { pointer-events: auto; }
+
+/* 画面の色味（時刻） */
+.tint {
+  position: absolute; inset: 0;
+  mix-blend-mode: multiply;
+  pointer-events: none !important;
+  transition: background-color 1.2s linear;
+}
+/* すやり霞 */
+.kasumi { position: absolute; inset: 0; pointer-events: none !important; }
+.kasumi::before, .kasumi::after {
+  content: ''; position: absolute; width: 60%; height: 26%;
+  background: radial-gradient(ellipse at center, rgba(200,162,75,0.34), rgba(200,162,75,0) 70%);
+  filter: blur(6px);
+}
+.kasumi::before { top: -8%; left: -12%; }
+.kasumi::after { bottom: -9%; right: -14%; width: 70%; }
+
+/* 会話 */
+.dialogue-tap { position: absolute; inset: 0; }
+.dialogue {
+  position: absolute; left: 50%; bottom: 4.5%;
+  transform: translateX(-50%);
+  width: min(620px, 88vw);
+  background-size: cover;
+  border: 1.5px solid rgba(42,36,30,0.55);
+  border-radius: 4px;
+  box-shadow: 0 6px 24px rgba(20,15,10,0.35);
+  padding: 14px 22px 16px;
+  animation: rise 0.25s ease-out;
+}
+@keyframes rise { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.dialogue .speaker {
+  font-size: 13px; letter-spacing: 0.2em; color: var(--shu); margin-bottom: 4px;
+}
+.dialogue .line { font-size: 19px; line-height: 1.7; letter-spacing: 0.08em; }
+.dialogue .hint {
+  position: absolute; right: 14px; bottom: 8px; font-size: 12px; opacity: 0.45;
+  animation: blink 1.6s infinite;
+}
+@keyframes blink { 0%,100% { opacity: 0.15; } 50% { opacity: 0.55; } }
+.choices { display: flex; gap: 12px; margin-top: 12px; }
+.choices button {
+  font-family: inherit; font-size: 16px; letter-spacing: 0.1em;
+  padding: 8px 18px; cursor: pointer;
+  background: rgba(255,252,240,0.85); color: var(--sumi);
+  border: 1.2px solid rgba(42,36,30,0.5); border-radius: 3px;
+}
+.choices button:hover { background: #fff; border-color: var(--shu); }
+
+/* 中央パネル共通（装束・文・絵日記） */
+.panel-wrap {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(20, 16, 24, 0.42);
+  animation: fadein 0.4s ease-out;
+}
+@keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+.panel {
+  background-size: cover;
+  border: 1.5px solid rgba(42,36,30,0.55); border-radius: 4px;
+  box-shadow: 0 10px 40px rgba(10,8,6,0.5);
+  padding: 26px 30px;
+}
+.panel .title { font-size: 15px; letter-spacing: 0.3em; color: var(--shu); text-align: center; margin-bottom: 18px; }
+
+/* 装束選び */
+.outfits { display: flex; gap: 20px; }
+.outfit {
+  cursor: pointer; text-align: center; border: none; background: none;
+  font-family: inherit; color: var(--sumi);
+}
+.outfit .swatch {
+  width: 74px; height: 96px; border-radius: 3px;
+  border: 1.5px solid rgba(42,36,30,0.6);
+  box-shadow: inset 0 -26px 0 var(--under), 0 3px 8px rgba(20,15,10,0.25);
+  transition: transform 0.15s;
+}
+.outfit:hover .swatch { transform: translateY(-4px); }
+.outfit .name { margin-top: 8px; font-size: 15px; letter-spacing: 0.2em; }
+
+/* 文 */
+.letter {
+  writing-mode: vertical-rl;
+  font-size: 21px; line-height: 2.4; letter-spacing: 0.14em;
+  padding: 34px 40px; min-height: 300px;
+  transform: rotate(-1.2deg);
+  position: relative;
+}
+.letter .sign { font-size: 16px; margin-top: auto; color: var(--shu); }
+.letter img { position: absolute; right: 14px; bottom: 10px; width: 74px; transform: rotate(8deg); }
+
+/* 絵日記（宵） */
+.diary {
+  width: min(560px, 90vw);
+  position: relative;
+}
+.diary .date { font-size: 14px; letter-spacing: 0.3em; margin-bottom: 12px; color: var(--shu); }
+.diary .picture {
+  height: 170px; display: flex; align-items: flex-end; justify-content: center; gap: 6px;
+  border-bottom: 1px solid rgba(42,36,30,0.25);
+  margin-bottom: 16px; padding-bottom: 8px;
+}
+.diary .picture img { height: 120px; }
+.diary .dline { font-size: 19px; line-height: 2; letter-spacing: 0.1em; }
+.diary .shiori-row { position: absolute; right: -10px; top: 60px; display: flex; flex-direction: column; gap: 10px; }
+.shiori {
+  writing-mode: vertical-rl;
+  background: var(--shu); color: var(--gofun);
+  font-family: inherit; font-size: 13px; letter-spacing: 0.22em;
+  border: none; border-radius: 0 3px 3px 0;
+  padding: 12px 5px; cursor: pointer;
+  box-shadow: 2px 2px 6px rgba(20,15,10,0.3);
+}
+.shiori:hover { filter: brightness(1.12); }
+.factcard {
+  position: absolute; inset: 0;
+  background-size: cover;
+  border-radius: 4px;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 30px 36px; box-sizing: border-box;
+  animation: flip 0.3s ease-out;
+}
+@keyframes flip { from { transform: rotateY(70deg); opacity: 0; } to { transform: rotateY(0); opacity: 1; } }
+.factcard .tag { font-size: 13px; color: var(--shu); letter-spacing: 0.3em; margin-bottom: 12px; }
+.factcard .short { font-size: 18px; line-height: 2; }
+.factcard .deep { font-size: 14.5px; line-height: 1.95; margin-top: 14px; }
+.factcard .more {
+  align-self: flex-start; margin-top: 14px;
+  background: none; border: none; cursor: pointer;
+  font-family: inherit; font-size: 14px; color: var(--shu); letter-spacing: 0.15em;
+  border-bottom: 1px solid var(--shu); padding: 0 2px 2px;
+}
+.factcard .back {
+  position: absolute; top: 10px; right: 14px;
+  background: none; border: none; cursor: pointer;
+  font-size: 18px; color: var(--sumi); opacity: 0.6; font-family: inherit;
+}
+.sleep-btn {
+  display: block; margin: 22px auto 0;
+  font-family: inherit; font-size: 16px; letter-spacing: 0.35em;
+  padding: 9px 30px; cursor: pointer;
+  background: var(--sumi); color: var(--gofun);
+  border: none; border-radius: 3px;
+}
+.sleep-btn:hover { background: #3d352c; }
+
+/* HUD */
+.hud-book {
+  position: absolute; top: 16px; left: 16px;
+  width: 52px; height: 44px; cursor: pointer;
+  background: var(--gofun);
+  border: 1.5px solid rgba(42,36,30,0.6); border-radius: 3px 6px 6px 3px;
+  box-shadow: inset 4px 0 0 var(--shu), 0 3px 8px rgba(20,15,10,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: inherit; font-size: 12px; letter-spacing: 0.1em; color: var(--sumi);
+  writing-mode: vertical-rl;
+}
+.hud-book:hover { transform: translateY(-2px); }
+.hud-time {
+  position: absolute; top: 14px; right: 16px; text-align: center;
+  pointer-events: none !important;
+}
+.hud-time .date {
+  font-size: 13px; letter-spacing: 0.2em; color: var(--gofun);
+  text-shadow: 0 1px 3px rgba(20,15,10,0.7);
+  writing-mode: vertical-rl; margin: 6px auto 0;
+}
+
+/* 図譜の実（とれた瞬間） */
+.toast {
+  position: absolute; bottom: 20px; right: 20px;
+  display: flex; align-items: center; gap: 10px;
+  background: var(--gofun); background-size: cover;
+  border: 1.5px solid rgba(42,36,30,0.55); border-radius: 4px;
+  padding: 8px 16px 8px 8px;
+  box-shadow: 0 4px 14px rgba(20,15,10,0.35);
+  animation: toastin 2.4s ease forwards;
+  pointer-events: none !important;
+}
+.toast img { height: 52px; }
+.toast .kana { font-size: 16px; letter-spacing: 0.15em; }
+@keyframes toastin {
+  0% { opacity: 0; transform: translateY(14px); }
+  12% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-8px); }
+}
+
+/* 絵日記帳（閲覧） */
+.book {
+  width: min(600px, 92vw); max-height: 82vh; overflow-y: auto;
+  position: relative;
+}
+.book .tabs { display: flex; gap: 10px; margin-bottom: 16px; }
+.book .tabs button {
+  font-family: inherit; font-size: 14px; letter-spacing: 0.25em;
+  padding: 6px 18px; cursor: pointer; border-radius: 3px;
+  border: 1.2px solid rgba(42,36,30,0.5);
+  background: rgba(255,252,240,0.6); color: var(--sumi);
+}
+.book .tabs button.on { background: var(--shu); color: var(--gofun); border-color: var(--shu); }
+.book .close {
+  position: absolute; top: 12px; right: 16px;
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; color: var(--sumi); opacity: 0.6; font-family: inherit;
+}
+.zufu-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.zufu-cell {
+  text-align: center; padding: 10px 4px 12px;
+  border: 1px solid rgba(42,36,30,0.2); border-radius: 3px;
+}
+.zufu-cell img { height: 84px; }
+.zufu-cell .kana { font-size: 14px; letter-spacing: 0.2em; margin-top: 4px; }
+.zufu-cell.unknown { opacity: 0.35; }
+.zufu-cell.unknown .q { font-size: 40px; line-height: 84px; display: block; opacity: 0.5; }
+.book-page { border-bottom: 1px dashed rgba(42,36,30,0.3); padding: 12px 4px; }
+.book-page .date { font-size: 12px; color: var(--shu); letter-spacing: 0.25em; }
+.book-page .dline { font-size: 16px; line-height: 1.9; }
+.book-page img { height: 44px; margin-right: 4px; }
+.book-empty { font-size: 14px; opacity: 0.55; letter-spacing: 0.2em; padding: 20px 0; }
+
+/* タイトル */
+.title-screen {
+  position: absolute; inset: 0;
+  background: #1a1612;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 40px;
+}
+.title-screen h1 {
+  writing-mode: vertical-rl;
+  color: var(--gofun); font-weight: 500;
+  font-size: 44px; letter-spacing: 0.35em; margin: 0;
+  text-shadow: 0 0 30px rgba(200,162,75,0.4);
+}
+.title-screen .sub {
+  writing-mode: vertical-rl;
+  color: var(--kin); font-size: 17px; letter-spacing: 0.4em;
+}
+.title-screen .titlerow { display: flex; gap: 26px; align-items: center; }
+.title-screen .buttons { display: flex; gap: 18px; }
+.title-screen button {
+  font-family: inherit; font-size: 16px; letter-spacing: 0.3em;
+  padding: 11px 34px; cursor: pointer;
+  background: none; color: var(--gofun);
+  border: 1.2px solid rgba(200,162,75,0.7); border-radius: 3px;
+}
+.title-screen button:hover { background: rgba(200,162,75,0.16); }
