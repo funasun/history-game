@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useGame } from './game/store'
 import { heldKeys, isMoveKey } from './game/live'
 import { SceneRoot } from './scene/SceneRoot'
-import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, Hud, Title, Prologue, Epilogue } from './game/ui/Ui'
+import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, Hud, Home, Title, Prologue, Guide, Epilogue } from './game/ui/Ui'
 import { DiaryNight, DiaryBook } from './game/ui/Diary'
 import { OrientationGuard } from './game/ui/Orientation'
 import { initAmbience } from './engine/ambience'
@@ -12,11 +12,14 @@ export default function App() {
   const mode = useGame(s => s.mode)
   const toast = useGame(s => s.toast)
   const bookOpen = useGame(s => s.bookOpen)
+  // 3Dの庭を映すのは世界の中にいる間だけ（ホーム・案内・令和の場面では出さない）
+  const inWorld = mode === 'dialogue' || mode === 'outfit' || mode === 'roam' || mode === 'letter' || mode === 'diary'
 
   useEffect(() => {
     initAmbience(() => {
       const s = useGame.getState()
-      return s.mode !== 'title' && s.t >= 0.55
+      const w = s.mode === 'roam' || s.mode === 'dialogue' || s.mode === 'outfit' || s.mode === 'letter' || s.mode === 'diary'
+      return w && s.t >= 0.55
     })
   }, [])
 
@@ -66,8 +69,8 @@ export default function App() {
 
   return (
     <div style={{ position: 'absolute', inset: 0 }}>
-      {mode !== 'title' && <SceneRoot />}
-      {mode !== 'title' && <Tint />}
+      {inWorld && <SceneRoot />}
+      {inWorld && <Tint />}
       <div className="kasumi" />
       <div className="ui-layer">
         {mode === 'roam' && <Hud />}
@@ -77,7 +80,9 @@ export default function App() {
         {mode === 'letter' && <LetterView />}
         {mode === 'diary' && <DiaryNight />}
         {bookOpen && <DiaryBook />}
+        {mode === 'home' && <Home />}
         {mode === 'prologue' && <Prologue />}
+        {mode === 'guide' && <Guide />}
         {mode === 'epilogue' && <Epilogue />}
         {mode === 'title' && <Title />}
       </div>

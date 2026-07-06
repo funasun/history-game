@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useGame } from '../store'
+import { ERAS } from '../eras'
 import { tintColor } from '../../heian/palette'
 import { flowerById } from '../../heian/flowers'
 import { washiDataURL, flowerDataURL, letterDataURL } from '../../engine/textures'
@@ -152,7 +153,8 @@ const PROLOGUE_SLIDES = [
   '令和八年、秋。おばあちゃんの家の、蔵のなか。',
   'ほこりをかぶった箱に、ふるい絵の本があった。',
   '表紙には、かすれた字で——『時渡り草子』。',
-  '頁をひらいたとたん、金いろの光があふれて、',
+  '奥書に、ひとこと。「ひらけば、むかしの日々を生きられる」。',
+  '頁をめくったとたん、金いろの光があふれて、',
   'わたしは、たおれるように、ねむってしまった。',
 ]
 
@@ -166,8 +168,8 @@ const EPILOGUE_SLIDES = [
 ]
 
 export function Prologue() {
-  const wake = useGame(s => s.wake)
-  return <StorySlides slides={PROLOGUE_SLIDES} onDone={wake} />
+  const toGuide = useGame(s => s.toGuide)
+  return <StorySlides slides={PROLOGUE_SLIDES} onDone={toGuide} />
 }
 
 export function Epilogue() {
@@ -175,15 +177,89 @@ export function Epilogue() {
   return <StorySlides slides={EPILOGUE_SLIDES} onDone={toTitle} lastHint="おわり" />
 }
 
+// あそびかた：はじめて世界へ入る前に、三つのことばだけ、そっと
+const GUIDE_ROWS = [
+  ['あるく', '行きたい方を、タップ'],
+  ['ふれる', '草花や人に、近づいて'],
+  ['えらぶ', 'ことばは、心のままに'],
+]
+
+export function Guide() {
+  const wake = useGame(s => s.wake)
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!e.repeat) wake() }
+    }
+    window.addEventListener('keydown', h)
+    return () => window.removeEventListener('keydown', h)
+  }, [wake])
+  return (
+    <div className="guide-screen">
+      <div className="guide-head">あそびかた</div>
+      <div className="guide-rows">
+        {GUIDE_ROWS.map(([verb, gloss]) => (
+          <div className="guide-row" key={verb}>
+            <span className="guide-verb">{verb}</span>
+            <span className="guide-gloss">{gloss}</span>
+          </div>
+        ))}
+      </div>
+      <div className="guide-note">日が暮れたら、宵に絵日記を。七日を生きて、目をさます。</div>
+      <button className="guide-start" onClick={wake}>この世に入る</button>
+    </div>
+  )
+}
+
+// シリーズのホーム：日本史の時代を渡りあるく。篇はこれからも増えてゆく
+export function Home() {
+  const toTitle = useGame(s => s.toTitle)
+  const shelfRef = useRef<HTMLDivElement>(null)
+  const activeRef = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    const shelf = shelfRef.current, active = activeRef.current
+    if (shelf && active) shelf.scrollLeft = active.offsetLeft - (shelf.clientWidth - active.clientWidth) / 2
+  }, [])
+  return (
+    <div className="home-screen">
+      <div className="kasumi" />
+      <div className="home-head">
+        <h1 className="home-title">時渡り草子</h1>
+        <div className="home-sub">日本史を 渡りあるく</div>
+      </div>
+      <div className="shelf" ref={shelfRef}>
+        {ERAS.map(e => e.available ? (
+          <button key={e.id} ref={activeRef} className="spine on" onClick={toTitle}>
+            <span className="top">{e.volume}</span>
+            <span className="ename">{e.name}</span>
+            <span className="eyear">{e.year}</span>
+          </button>
+        ) : (
+          <div key={e.id} className="spine locked">
+            <span className="top">近日</span>
+            <span className="ename">{e.name}</span>
+            <span className="eyear">{e.year}</span>
+          </div>
+        ))}
+      </div>
+      <div className="home-foot">篇は、これからも増えてゆく</div>
+    </div>
+  )
+}
+
 export function Title() {
   const start = useGame(s => s.start)
+  const toHome = useGame(s => s.toHome)
   const saved = hasSave()
   return (
     <div className="title-screen">
       <div className="kasumi" />
-      <div className="titlerow">
-        <h1>時渡り草子</h1>
-        <div className="sub">平安篇</div>
+      <button className="title-back" onClick={toHome}>← 時代をえらぶ</button>
+      <div className="title-main">
+        <div className="titlerow">
+          <h1>時渡り草子</h1>
+          <div className="sub">平安篇</div>
+        </div>
+        <div className="tagline">みやこの秋、七日の日記</div>
       </div>
       <div className="buttons">
         {saved && <button onClick={() => start(false)}>つづきから</button>}

@@ -7,7 +7,7 @@ import { BED } from '../heian/layout'
 import { loadSave, writeSave, clearSave } from '../engine/save'
 import { playerWorld } from './live'
 
-export type Mode = 'title' | 'prologue' | 'dialogue' | 'outfit' | 'roam' | 'letter' | 'diary' | 'epilogue'
+export type Mode = 'home' | 'title' | 'prologue' | 'guide' | 'dialogue' | 'outfit' | 'roam' | 'letter' | 'diary' | 'epilogue'
 type Then = 'outfit' | 'letter' | 'roam'
 
 export interface DialogueLine {
@@ -45,7 +45,9 @@ interface GameState {
 
   start: (fresh: boolean) => void
   wake: () => void
+  toHome: () => void
   toTitle: () => void
+  toGuide: () => void
   tick: (dt: number) => void
   walkTo: (x: number, z: number) => void
   interact: (id: string) => void
@@ -77,7 +79,7 @@ function interactablePos(id: string, t: number): [number, number] | null {
 }
 
 export const useGame = create<GameState>((set, get) => ({
-  mode: 'title',
+  mode: 'home',
   day: 1,
   t: START_T,
   outfit: null,
@@ -121,7 +123,9 @@ export const useGame = create<GameState>((set, get) => ({
 
   wake: () => set({ mode: 'dialogue', dialogue: { lines: WAKE_LINES, i: 0, then: 'outfit' } }),
 
+  toHome: () => set({ mode: 'home', dialogue: null }),
   toTitle: () => set({ mode: 'title', dialogue: null }),
+  toGuide: () => set({ mode: 'guide', dialogue: null }),
 
   tick: (dt) => {
     const s = get()

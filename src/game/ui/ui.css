@@ -322,13 +322,101 @@ html.force-landscape #root {
   transform-origin: top left;
 }
 
-/* タイトル */
+/* ホーム（シリーズの表紙：時代の本棚） */
+.home-screen {
+  position: absolute; inset: 0;
+  background: #1a1612;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 26px;
+}
+.home-head { text-align: center; z-index: 1; }
+.home-title {
+  color: var(--gofun); font-weight: 500; margin: 0 0 9px;
+  font-size: 30px; letter-spacing: 0.42em;
+  text-shadow: 0 0 26px rgba(200,162,75,0.4);
+}
+.home-sub { color: var(--kin); font-size: 13px; letter-spacing: 0.46em; }
+.shelf {
+  display: flex; align-items: center; gap: 12px;
+  max-width: 92%; padding: 16px 26px 20px;
+  overflow-x: auto; overflow-y: hidden;
+  border-top: 1px solid rgba(200,162,75,0.22);
+  border-bottom: 1px solid rgba(200,162,75,0.22);
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.shelf::-webkit-scrollbar { display: none; }
+.spine {
+  position: relative; flex: none;
+  width: 58px; height: 176px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.2px solid rgba(244,238,218,0.16); border-radius: 3px;
+  background: linear-gradient(180deg, rgba(58,50,40,0.55), rgba(38,32,26,0.78));
+  font-family: inherit;
+}
+.spine .ename {
+  writing-mode: vertical-rl; font-size: 22px; letter-spacing: 0.18em;
+  color: rgba(244,238,218,0.52);
+}
+.spine .top {
+  position: absolute; top: 10px; left: 0; right: 0; text-align: center;
+  font-size: 10px; letter-spacing: 0.12em; color: rgba(244,238,218,0.38);
+}
+.spine .eyear {
+  position: absolute; bottom: 9px; left: 0; right: 0; text-align: center;
+  font-size: 9.5px; letter-spacing: 0.06em; color: rgba(244,238,218,0.4);
+}
+.spine.locked { filter: saturate(0.55); }
+.spine.on {
+  cursor: pointer; width: 66px; height: 196px;
+  border-color: rgba(200,162,75,0.85);
+  background: linear-gradient(180deg, rgba(124,60,54,0.7), rgba(86,38,34,0.85));
+  box-shadow: 0 0 22px rgba(200,162,75,0.32), 0 6px 16px rgba(10,8,6,0.5);
+  transition: transform 0.15s;
+}
+.spine.on .ename { font-size: 26px; color: var(--gofun); letter-spacing: 0.2em; }
+.spine.on .top { color: var(--kin); font-size: 11px; letter-spacing: 0.2em; }
+.spine.on .eyear { color: rgba(244,238,218,0.72); }
+.spine.on:hover { transform: translateY(-5px); }
+.home-foot { color: rgba(244,238,218,0.42); font-size: 12px; letter-spacing: 0.3em; }
+
+/* あそびかた案内（世界へ入る前の三語） */
+.guide-screen {
+  position: absolute; inset: 0;
+  background: #17181c;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 22px;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+.guide-head { color: var(--kin); font-size: 13px; letter-spacing: 0.42em; }
+.guide-rows { display: flex; flex-direction: column; gap: 15px; }
+.guide-row { display: flex; align-items: baseline; gap: 18px; }
+.guide-verb {
+  color: #e8e6df; font-size: 22px; letter-spacing: 0.28em;
+  min-width: 3.6em; text-align: right;
+}
+.guide-gloss { color: #a7a49b; font-size: 14px; letter-spacing: 0.1em; }
+.guide-note { color: #8b877c; font-size: 12.5px; letter-spacing: 0.14em; margin-top: 4px; }
+.guide-start {
+  margin-top: 12px; font-family: inherit; font-size: 16px; letter-spacing: 0.3em;
+  padding: 10px 32px; cursor: pointer; color: var(--gofun);
+  background: none; border: 1.2px solid rgba(200,162,75,0.7); border-radius: 3px;
+}
+.guide-start:hover { background: rgba(200,162,75,0.16); }
+
+/* タイトル（平安篇の表紙） */
 .title-screen {
   position: absolute; inset: 0;
   background: #1a1612;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 40px;
 }
+.title-back {
+  position: absolute; top: 18px; left: 18px; z-index: 2;
+  font-family: inherit; font-size: 13px; letter-spacing: 0.2em;
+  color: rgba(244,238,218,0.7); background: none; border: none; cursor: pointer;
+}
+.title-back:hover { color: var(--gofun); }
+.title-screen .title-main { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .title-screen h1 {
   writing-mode: vertical-rl;
   color: var(--gofun); font-weight: 500;
@@ -340,6 +428,7 @@ html.force-landscape #root {
   color: var(--kin); font-size: 17px; letter-spacing: 0.4em;
 }
 .title-screen .titlerow { display: flex; gap: 26px; align-items: center; }
+.title-screen .tagline { color: var(--kin); font-size: 13px; letter-spacing: 0.3em; opacity: 0.85; }
 .title-screen .buttons { display: flex; gap: 18px; }
 .title-screen button {
   font-family: inherit; font-size: 16px; letter-spacing: 0.3em;
@@ -348,3 +437,29 @@ html.force-landscape #root {
   border: 1.2px solid rgba(200,162,75,0.7); border-radius: 3px;
 }
 .title-screen button:hover { background: rgba(200,162,75,0.16); }
+
+/* 横画面スマホは背が低い（320〜430px）。縦組みの外題が収まるよう詰める */
+@media (max-height: 460px) {
+  .title-screen { gap: 20px; }
+  .title-screen h1 { font-size: 30px; }
+  .title-screen .sub { font-size: 14px; }
+  .title-screen .titlerow { gap: 20px; }
+  .title-screen .title-main { gap: 10px; }
+  .title-screen .tagline { font-size: 12px; }
+  .title-screen .buttons button { padding: 9px 26px; font-size: 15px; }
+  .home-screen { gap: 16px; }
+  .home-title { font-size: 25px; }
+  .spine { height: 150px; }
+  .spine.on { height: 166px; }
+  .guide-screen { gap: 16px; }
+  .guide-verb { font-size: 20px; }
+}
+@media (max-height: 350px) {
+  .title-screen { gap: 14px; }
+  .title-screen h1 { font-size: 25px; }
+  .home-title { font-size: 22px; }
+  .spine { width: 52px; height: 132px; }
+  .spine.on { width: 58px; height: 148px; }
+  .spine .ename { font-size: 19px; }
+  .spine.on .ename { font-size: 22px; }
+}
