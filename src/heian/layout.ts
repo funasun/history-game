@@ -46,7 +46,7 @@ export const TREES: TreeDef[] = [
   { x: 17, z: -1, kind: 'maple', s: 1.2 },
   { x: 16, z: 9, kind: 'maple', s: 1.4 },
   { x: 17.5, z: -11, kind: 'pine', s: 1.3 },
-  { x: -12, z: 12, kind: 'pine', s: 1.0 },
+  { x: -15.5, z: 11, kind: 'pine', s: 1.0 },  // 阿弥陀堂の西どなり（御堂に枝がかからぬよう離す）
   { x: 6, z: 12.5, kind: 'maple', s: 1.1 },
   // 広がった外苑（築地塀ぞい）
   { x: -23, z: -8, kind: 'pine', s: 1.4 },
