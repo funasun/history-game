@@ -68,7 +68,7 @@ export default function App() {
   }, [])
 
   return (
-    <div style={{ position: 'absolute', inset: 0 }}>
+    <div style={{ position: 'fixed', inset: 0 }}>
       {inWorld && <SceneRoot />}
       {inWorld && <Tint />}
       <div className="kasumi" />
