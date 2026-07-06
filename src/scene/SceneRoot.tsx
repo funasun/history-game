@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { useGame } from '../game/store'
 import { skyColor } from '../heian/palette'
 import { World } from './World'
-import { Player, Characters, Flowers, Bed } from './actors'
+import { Player, Characters, Flowers, Bed, Landmarks } from './actors'
 import { playerWorld } from '../game/live'
 
 function Atmosphere() {
@@ -81,6 +81,7 @@ export function SceneRoot() {
       <CameraRig />
       <SizeFix />
       <World />
+      <Landmarks />
       <Flowers />
       <Characters />
       <Bed />

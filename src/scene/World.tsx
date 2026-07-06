@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useGame } from '../game/store'
 import { P } from '../heian/palette'
-import { FLOORS, PILLARS, MISU, POND, ISLAND, STREAM, TREES, BOUNDS, KICHO, blocked } from '../heian/layout'
+import { FLOORS, PILLARS, MISU, POND, ISLAND, STREAM, TREES, BOUNDS, SAND, KICHO, blocked } from '../heian/layout'
 import { toTexture, misuCanvas, kichoCanvas } from '../engine/textures'
 import { playerWorld } from '../game/live'
 
@@ -32,9 +32,9 @@ export function World() {
         <planeGeometry args={[160, 160]} />
         <meshLambertMaterial color="#b3ab8d" />
       </mesh>
-      {/* 南庭の白砂 */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.001, 0.2]} onClick={onGround}>
-        <planeGeometry args={[W.maxX - W.minX, W.maxZ - W.minZ]} />
+      {/* 南庭の白砂（寝殿と池のあいだ） */}
+      <mesh rotation-x={-Math.PI / 2} position={[SAND.x, 0.001, SAND.z]} onClick={onGround}>
+        <planeGeometry args={[SAND.w, SAND.d]} />
         <meshLambertMaterial color={P.sand} />
       </mesh>
 

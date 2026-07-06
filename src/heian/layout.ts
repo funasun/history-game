@@ -48,10 +48,24 @@ export const TREES: TreeDef[] = [
   { x: 17.5, z: -11, kind: 'pine', s: 1.3 },
   { x: -12, z: 12, kind: 'pine', s: 1.0 },
   { x: 6, z: 12.5, kind: 'maple', s: 1.1 },
+  // 広がった外苑（築地塀ぞい）
+  { x: -23, z: -8, kind: 'pine', s: 1.4 },
+  { x: -23, z: 3, kind: 'maple', s: 1.2 },
+  { x: -22.5, z: 13, kind: 'maple', s: 1.3 },
+  { x: 23, z: -9, kind: 'pine', s: 1.4 },
+  { x: 23.5, z: 8, kind: 'maple', s: 1.2 },
+  { x: 24, z: 15, kind: 'maple', s: 1.1 },
+  { x: -16, z: 17, kind: 'maple', s: 1.2 },
+  { x: -6, z: 17.5, kind: 'pine', s: 1.2 },
+  { x: 13, z: 17.5, kind: 'maple', s: 1.3 },
+  { x: 10, z: 13, kind: 'maple', s: 1.0 },
 ]
 
-// 築地塀（内側の遊び場の境界）
-export const BOUNDS = { minX: -18.5, maxX: 18.5, minZ: -13, maxZ: 13.5 }
+// 築地塀（内側の遊び場の境界）：都をあるく心地になるよう、南と東西へ広げた
+export const BOUNDS = { minX: -25, maxX: 25, minZ: -14, maxZ: 19 }
+
+// 南庭の白砂（寝殿と池のあいだの、儀式と遊びの庭）。境界いっぱいではなく中央の矩形
+export const SAND = { x: 2, z: -0.3, w: 26, d: 7.6 }
 
 // 褥（眠る場所：寝殿の西）と几帳
 export const BED = { x: -5.5, z: -8.5 }

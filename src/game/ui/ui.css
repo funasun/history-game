@@ -227,7 +227,7 @@
   width: min(600px, 92vw); max-height: 100%; overflow-y: auto;
   position: relative;
 }
-.book .tabs { display: flex; gap: 10px; margin-bottom: 16px; }
+.book .tabs { display: flex; flex-wrap: wrap; gap: 10px; row-gap: 8px; margin-bottom: 16px; }
 .book .tabs button {
   font-family: inherit; font-size: 14px; letter-spacing: 0.25em;
   padding: 6px 18px; cursor: pointer; border-radius: 3px;
@@ -254,6 +254,45 @@
 .book-page .dline { font-size: 16px; line-height: 1.9; }
 .book-page img { height: 44px; margin-right: 4px; }
 .book-empty { font-size: 14px; opacity: 0.55; letter-spacing: 0.2em; padding: 20px 0; }
+
+/* 年表（時系列で出来事を追う） */
+.nenpyo { display: flex; flex-direction: column; }
+.nenpyo-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid rgba(42,36,30,0.25);
+}
+.nenpyo-title { font-size: 15px; letter-spacing: 0.28em; color: var(--shu); }
+.nenpyo-count { font-size: 12px; letter-spacing: 0.12em; opacity: 0.7; }
+.nenpyo-list { display: flex; flex-direction: column; gap: 7px; }
+.tl-item {
+  border: 1px solid rgba(42,36,30,0.22); border-left: 3px solid var(--shu);
+  border-radius: 3px; padding: 9px 12px; cursor: pointer;
+  background: rgba(255,252,240,0.5);
+}
+.tl-item:hover { border-color: var(--shu); }
+.tl-item.locked {
+  cursor: default; opacity: 0.5;
+  border-left-color: rgba(42,36,30,0.3);
+  background: rgba(255,252,240,0.2);
+}
+.tl-row { display: flex; align-items: baseline; gap: 12px; }
+.tl-year {
+  flex: none; width: 3em; text-align: right;
+  font-size: 15px; letter-spacing: 0.03em; color: var(--shu); font-weight: 600;
+}
+.tl-item.locked .tl-year { color: var(--sumi); }
+.tl-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.tl-title { font-size: 15px; letter-spacing: 0.06em; }
+.tl-meta { font-size: 11.5px; letter-spacing: 0.08em; opacity: 0.65; }
+.tl-mark { flex: none; font-size: 10px; color: var(--shu); opacity: 0.8; }
+.tl-item.locked .tl-mark { color: var(--sumi); opacity: 0.4; }
+.tl-line { font-size: 13.5px; line-height: 1.7; margin-top: 6px; opacity: 0.85; }
+.tl-deep {
+  font-size: 13.5px; line-height: 1.95; margin-top: 8px;
+  padding-top: 8px; border-top: 1px dashed rgba(42,36,30,0.3);
+}
+.nenpyo-foot { font-size: 11.5px; letter-spacing: 0.14em; opacity: 0.5; margin-top: 12px; text-align: center; }
 
 /* 栞のたまり（絵日記帳） */
 .shiori-list { display: flex; flex-direction: column; gap: 8px; }

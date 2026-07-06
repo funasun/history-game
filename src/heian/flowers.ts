@@ -31,4 +31,12 @@ export const FLOWER_SPOTS: FlowerSpot[] = [
   { id: 'susuki-a',    species: 'susuki',    x: 7,    z: 9.5 },
   { id: 'hagi-a',      species: 'hagi',      x: -13,  z: 9 },
   { id: 'momiji-a',    species: 'momiji',    x: 16,   z: 9 },
+  // 広がった外苑に咲く（歩けば見つかる）
+  { id: 'kiku-c',      species: 'kiku',      x: -20,  z: -6 },
+  { id: 'rindou-c',    species: 'rindou',    x: -21,  z: 10 },
+  { id: 'hagi-b',      species: 'hagi',      x: -18,  z: 16 },
+  { id: 'ominaeshi-c', species: 'ominaeshi', x: 18,   z: 8 },
+  { id: 'susuki-b',    species: 'susuki',    x: 15,   z: 15 },
+  { id: 'momiji-b',    species: 'momiji',    x: -3,   z: 17 },
+  { id: 'kiku-d',      species: 'kiku',      x: 9,    z: 14.5 },
 ]

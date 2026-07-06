@@ -10,6 +10,7 @@ export interface SaveData {
   diary: DiaryEntry[]
   letterSeen: boolean
   flags: string[]
+  learnedEvents?: string[]   // 見た出来事（名所や栞から）。旧セーブには無い
 }
 
 export function loadSave(): SaveData | null {

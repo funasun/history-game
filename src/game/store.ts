@@ -3,6 +3,7 @@ import { getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, BED_EARLY } from '../heian/
 import { DAY_EVENTS, LAST_DAY } from '../heian/days'
 import { CHARACTERS, charById, charPos } from '../heian/characters'
 import { FLOWER_SPOTS, flowerById } from '../heian/flowers'
+import { LANDMARKS, landmarkById } from '../heian/timeline'
 import { BED } from '../heian/layout'
 import { loadSave, writeSave, clearSave } from '../engine/save'
 import { playerWorld } from './live'
@@ -35,6 +36,7 @@ interface GameState {
   letterSeen: boolean
   dayEventDone: boolean            // その日の宵の出来事
   flags: string[]
+  learnedEvents: string[]          // 見た出来事（名所にふれて／栞から）
   diary: DiaryEntry[]
   dialogue: { lines: DialogueLine[]; i: number; then: Then } | null
   target: [number, number] | null
@@ -75,6 +77,10 @@ function interactablePos(id: string, t: number): [number, number] | null {
     const spot = FLOWER_SPOTS.find(s => s.id === id.slice(7))
     if (spot) return [spot.x, spot.z + 0.9]
   }
+  if (id.startsWith('mark:')) {
+    const m = landmarkById(id.slice(5))
+    if (m) return m.approach
+  }
   return null
 }
 
@@ -90,6 +96,7 @@ export const useGame = create<GameState>((set, get) => ({
   letterSeen: false,
   dayEventDone: false,
   flags: [],
+  learnedEvents: [],
   diary: [],
   dialogue: null,
   target: null,
@@ -106,6 +113,7 @@ export const useGame = create<GameState>((set, get) => ({
         day: save.day, t: START_T, outfit: save.outfit,
         zufu: save.zufu, talked: save.talked, diary: save.diary,
         letterSeen: save.letterSeen, flags: save.flags ?? [],
+        learnedEvents: save.learnedEvents ?? [],
         collected: [], talkedToday: [], dayEventDone: false,
         playerPos: [-3, -6],
         mode: morning ? 'dialogue' : 'roam',
@@ -115,7 +123,7 @@ export const useGame = create<GameState>((set, get) => ({
       set({
         mode: 'prologue', day: 1, t: START_T, outfit: null,
         zufu: [], talked: {}, talkedToday: [], diary: [],
-        letterSeen: false, dayEventDone: false, flags: [],
+        letterSeen: false, dayEventDone: false, flags: [], learnedEvents: [],
         collected: [], playerPos: [-3, -6], dialogue: null,
       })
     }
@@ -237,6 +245,7 @@ export const useGame = create<GameState>((set, get) => ({
     writeSave({
       day, outfit: s.outfit, zufu, talked: s.talked,
       diary: s.diary, letterSeen: s.letterSeen, flags: s.flags,
+      learnedEvents: s.learnedEvents,
     })
   },
 
@@ -255,6 +264,7 @@ function nearestInteractable(x: number, z: number, s: GameState, radius = 1.3): 
   for (const f of FLOWER_SPOTS) {
     if (!s.collected.includes(f.id)) cand.push([`flower:${f.id}`, f.x, f.z])
   }
+  for (const m of LANDMARKS) cand.push([`mark:${m.id}`, m.pos[0], m.pos[1]])
   cand.push(['bed', BED.x, BED.z])
   let best: string | null = null
   let bestD = radius
@@ -298,6 +308,18 @@ function resolve(id: string, set: Set, get: Get) {
     } else {
       set({ mode: 'dialogue', dialogue: { lines: BED_EARLY, i: 0, then: 'roam' } })
     }
+    return
+  }
+  if (id.startsWith('mark:')) {
+    const m = landmarkById(id.slice(5))
+    if (!m) return
+    // 名所にふれる＝その出来事を見た。頁がひらき、年表に加わる。
+    const learnedEvents = [...new Set([...s.learnedEvents, ...m.events])]
+    set({
+      learnedEvents,
+      mode: 'dialogue',
+      dialogue: { lines: m.scene, i: 0, then: 'roam' },
+    })
     return
   }
   if (id.startsWith('char:')) {

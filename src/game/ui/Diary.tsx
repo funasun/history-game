@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useGame } from '../store'
 import { FLOWERS, flowerById } from '../../heian/flowers'
 import { factById } from '../../heian/facts'
+import { TIMELINE } from '../../heian/timeline'
 import { washiDataURL, flowerDataURL, letterDataURL } from '../../engine/textures'
 import { dateLabel } from './date'
 
@@ -76,20 +77,62 @@ export function DiaryNight() {
 export function DiaryBook() {
   const diary = useGame(s => s.diary)
   const zufu = useGame(s => s.zufu)
+  const learnedEvents = useGame(s => s.learnedEvents)
   const setBookOpen = useGame(s => s.setBookOpen)
-  const [tab, setTab] = useState<'nikki' | 'zufu' | 'shiori'>('zufu')
+  const [tab, setTab] = useState<'nenpyo' | 'nikki' | 'zufu' | 'shiori'>('nenpyo')
   const [openFact, setOpenFact] = useState<string | null>(null)
+  const [openEvent, setOpenEvent] = useState<string | null>(null)
   const learned = [...new Set(diary.flatMap(e => e.factIds))]
+  // 栞（文化）を得ていれば、その出来事も「見た」とみなす
+  const factSet = new Set(learned)
+  const witnessed = (ev: typeof TIMELINE[number]) =>
+    learnedEvents.includes(ev.id) || (!!ev.factId && factSet.has(ev.factId))
+  const seenCount = TIMELINE.filter(witnessed).length
 
   return (
     <div className="panel-wrap" onClick={() => setBookOpen(false)}>
       <div className="panel book" style={washi()} onClick={e => e.stopPropagation()}>
         <button className="close" onClick={() => setBookOpen(false)}>✕</button>
         <div className="tabs">
+          <button className={tab === 'nenpyo' ? 'on' : ''} onClick={() => setTab('nenpyo')}>年表</button>
           <button className={tab === 'zufu' ? 'on' : ''} onClick={() => setTab('zufu')}>草花の図譜</button>
           <button className={tab === 'nikki' ? 'on' : ''} onClick={() => setTab('nikki')}>これまでの頁</button>
           <button className={tab === 'shiori' ? 'on' : ''} onClick={() => setTab('shiori')}>栞のたまり</button>
         </div>
+
+        {tab === 'nenpyo' && (
+          <div className="nenpyo">
+            <div className="nenpyo-head">
+              <span className="nenpyo-title">平安のあゆみ</span>
+              <span className="nenpyo-count">見た出来事　{seenCount} / {TIMELINE.length}</span>
+            </div>
+            <div className="nenpyo-list">
+              {TIMELINE.map(ev => {
+                const w = witnessed(ev)
+                const open = openEvent === ev.id
+                return (
+                  <div
+                    key={ev.id}
+                    className={`tl-item${w ? '' : ' locked'}${open ? ' open' : ''}`}
+                    onClick={() => w && setOpenEvent(open ? null : ev.id)}
+                  >
+                    <div className="tl-row">
+                      <span className="tl-year">{ev.year}</span>
+                      <span className="tl-body">
+                        <span className="tl-title">{w ? ev.title : 'まだ見ぬ出来事'}</span>
+                        {w && <span className="tl-meta">{ev.wa}・{ev.figure}</span>}
+                      </span>
+                      <span className="tl-mark">{w ? '●' : '○'}</span>
+                    </div>
+                    {w && !open && <div className="tl-line">{ev.line}</div>}
+                    {w && open && <div className="tl-deep">{ev.deep}</div>}
+                  </div>
+                )
+              })}
+            </div>
+            <div className="nenpyo-foot">庭の名所にふれ、七日を生きて、頁をうめてゆく。</div>
+          </div>
+        )}
 
         {tab === 'zufu' && (
           <div className="zufu-grid">
