@@ -114,7 +114,7 @@ export const LANDMARKS: Landmark[] = [
   },
   {
     id: 'daibutsu', label: '鎌倉大仏', kind: 'daibutsu',
-    pos: [-14, -3], approach: [-11.6, -2.2],
+    pos: [-14, -3], approach: [-10.9, -2],
     events: ['kongo', 'bukkyo'],
     scene: [
       { text: '青銅の大仏を見あげると、頁がしずかにひらいた。' },
@@ -129,7 +129,7 @@ export const LANDMARKS: Landmark[] = [
   },
   {
     id: 'seat', label: '政庁', kind: 'seat',
-    pos: [13, -9], approach: [10.4, -8],
+    pos: [13, -9], approach: [10, -7.85],
     events: ['shikken', 'jokyu', 'shikimoku', 'tokusei'],
     scene: [
       { text: '武家の政庁に立つと、草子の頁が大きくひらく。' },

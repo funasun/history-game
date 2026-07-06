@@ -298,6 +298,21 @@ export function Bed() {
   )
 }
 
+// 未踏の名所からのぼる光の柱。遠くからでも「まだ見ぬ頁」を見つけられる目印。
+function Beacon({ x, z, y }: { x: number; z: number; y: number }) {
+  const mat = useRef<THREE.MeshBasicMaterial>(null)
+  useFrame(({ clock }) => {
+    if (mat.current) mat.current.opacity = 0.14 + 0.07 * Math.sin(clock.elapsedTime * 1.5)
+  })
+  const H = 12
+  return (
+    <mesh position={[x, y + H / 2, z]} raycast={noRaycast}>
+      <cylinderGeometry args={[0.5, 0.34, H, 14, 1, true]} />
+      <meshBasicMaterial ref={mat} color={P.kin} transparent depthWrite={false} side={THREE.DoubleSide} blending={THREE.AdditiveBlending} />
+    </mesh>
+  )
+}
+
 // 名所（時代の頁がひらく場所）。立体は各篇の pack.LandmarkMesh が持つ。
 export function Landmarks() {
   const interact = useGame(s => s.interact)
@@ -311,6 +326,7 @@ export function Landmarks() {
         return (
           <group key={m.id}>
             <Halo x={m.pos[0]} z={m.pos[1]} y={gy + 0.05} r={1.4} strength={seen ? 0.2 : 0.5} />
+            {!seen && <Beacon x={m.pos[0]} z={m.pos[1]} y={gy} />}
             <group
               position={[m.pos[0], gy, m.pos[1]]}
               onClick={e => { e.stopPropagation(); interact(`mark:${m.id}`) }}
@@ -320,6 +336,51 @@ export function Landmarks() {
           </group>
         )
       })}
+    </group>
+  )
+}
+
+// 導きの霊火：いちばん近い未踏の名所へ、プレイヤーの前方でそっと向きを指す。
+// （文字で教えず、光でいざなう——もののあはれの狐火のように）
+export function GuideMote() {
+  const learned = useGame(s => s.learnedEvents)
+  const { LANDMARKS, groundY } = getPack()
+  const group = useRef<THREE.Group>(null)
+  const mat = useRef<THREE.MeshBasicMaterial>(null)
+  const tex = useMemo(() => toTexture('halo', haloCanvas), [])
+  const pos = useRef(new THREE.Vector3())
+  const ready = useRef(false)
+  useFrame(({ clock, camera }) => {
+    const g = group.current
+    if (!g) return
+    const s = useGame.getState()
+    const targets = LANDMARKS.filter(m => !m.events.every(e => learned.includes(e)))
+    if (targets.length === 0 || s.mode !== 'roam') { g.visible = false; return }
+    // 最も近い未踏の名所を選ぶ
+    let bx = targets[0].pos[0], bz = targets[0].pos[1], bestD = Infinity
+    for (const m of targets) {
+      const d = (m.pos[0] - playerWorld.x) ** 2 + (m.pos[1] - playerWorld.z) ** 2
+      if (d < bestD) { bestD = d; bx = m.pos[0]; bz = m.pos[1] }
+    }
+    const dx = bx - playerWorld.x, dz = bz - playerWorld.z
+    const len = Math.hypot(dx, dz) || 1
+    const lead = Math.min(2.6, len - 0.3)
+    const tx = playerWorld.x + (dx / len) * lead
+    const tz = playerWorld.z + (dz / len) * lead
+    if (!ready.current) { pos.current.set(tx, 0, tz); ready.current = true }
+    else pos.current.lerp(new THREE.Vector3(tx, 0, tz), 0.1)
+    const bob = 1.5 + 0.16 * Math.sin(clock.elapsedTime * 2.4)
+    g.visible = true
+    g.position.set(pos.current.x, groundY(pos.current.x, pos.current.z) + bob, pos.current.z)
+    g.lookAt(camera.position)
+    if (mat.current) mat.current.opacity = 0.42 + 0.22 * Math.sin(clock.elapsedTime * 3)
+  })
+  return (
+    <group ref={group} visible={false}>
+      <mesh raycast={noRaycast}>
+        <planeGeometry args={[0.85, 0.85]} />
+        <meshBasicMaterial ref={mat} map={tex} color={P.kin} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
+      </mesh>
     </group>
   )
 }

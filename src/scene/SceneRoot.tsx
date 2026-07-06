@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { useGame } from '../game/store'
 import { getPack } from '../game/pack'
 import { World } from './World'
-import { Player, Characters, Flowers, Bed, Landmarks } from './actors'
+import { Player, Characters, Flowers, Bed, Landmarks, GuideMote } from './actors'
 import { Life } from './Life'
 import { playerWorld } from '../game/live'
 
@@ -92,6 +92,7 @@ export function SceneRoot() {
       <Characters />
       <Bed />
       <Player />
+      <GuideMote />
       <Life />
     </Canvas>
   )

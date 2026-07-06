@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useGame } from './game/store'
 import { heldKeys, isMoveKey } from './game/live'
 import { SceneRoot } from './scene/SceneRoot'
-import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, Hud, Home, Title, Prologue, Guide, Epilogue } from './game/ui/Ui'
+import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, PageToast, Hud, Home, Title, Prologue, Guide, Epilogue } from './game/ui/Ui'
 import { DiaryNight, DiaryBook } from './game/ui/Diary'
 import { OrientationGuard } from './game/ui/Orientation'
 import { initAmbience } from './engine/ambience'
@@ -11,6 +11,7 @@ import './game/ui/ui.css'
 export default function App() {
   const mode = useGame(s => s.mode)
   const toast = useGame(s => s.toast)
+  const pageToast = useGame(s => s.pageToast)
   const bookOpen = useGame(s => s.bookOpen)
   // 3Dの庭を映すのは世界の中にいる間だけ（ホーム・案内・令和の場面では出さない）
   const inWorld = mode === 'dialogue' || mode === 'outfit' || mode === 'roam' || mode === 'letter' || mode === 'diary'
@@ -75,6 +76,7 @@ export default function App() {
       <div className="ui-layer">
         {mode === 'roam' && <Hud />}
         {toast && <Toast />}
+        {pageToast && <PageToast />}
         {mode === 'dialogue' && <DialogueBox />}
         {mode === 'outfit' && <OutfitChoice />}
         {mode === 'letter' && <LetterView />}

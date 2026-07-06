@@ -12,11 +12,13 @@ import { skyColor, tintColor } from './palette'
 import { KamakuraWorld, KamakuraLandmarkMesh } from './world'
 import { buildSolids } from '../game/solids'
 
-// 木と名所（社・大仏・政庁）に当たりを付ける。由比ヶ浜は海がすでに壁なので0。
+// 木と名所（社・大仏・政庁）に当たりを付ける。社殿・大仏・政庁は据わりが大きいので、
+// 建物の土台ぶんだけ広く塞ぐ（接近点は buildSolids のクランプで円の外に保たれる）。
+// 由比ヶ浜は海がすでに壁、鳥居はくぐれるので0。
 const KAMAKURA_SOLIDS = buildSolids({
   trees: TREES,
   landmarks: LANDMARKS,
-  landmarkR: { shrine: 1.3, daibutsu: 1.3, seat: 1.2, sea: 0 },
+  landmarkR: { shrine: 2.2, daibutsu: 2.4, seat: 2.2, sea: 0 },
 })
 
 export const kamakuraPack: Pack = {
@@ -50,10 +52,10 @@ export const kamakuraPack: Pack = {
   epilogueHint: 'おわり',
   guideRows: [
     ['あるく', '行きたい方を、タップ'],
-    ['ふれる', '名所や人に、近づいて'],
+    ['ふれる', '光る名所や、人に'],
     ['えらぶ', 'ことばは、心のままに'],
   ],
-  guideNote: '日が暮れたら、宵に絵日記を。五日を生きて、目をさます。',
+  guideNote: '光の柱がのぼる名所にふれると、時代の頁が年表にひらく。日が暮れたら、寝所で宵の絵日記を。',
   outfits: [
     { name: '紺', color: '#31517a', under: '#25405f' },
     { name: '萌黄', color: '#6a7f3f', under: '#54662f' },

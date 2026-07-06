@@ -12,12 +12,13 @@ import { skyColor, tintColor } from './palette'
 import { HeianWorld, HeianLandmarkMesh } from './world'
 import { buildSolids } from '../game/solids'
 
-// 木・柱・名所に当たりを付ける。門と舟出は素通りさせる（近づいて調べる場所なので0）。
+// 木・柱・名所に当たりを付ける。塔と御堂は見た目の土台ぶんだけ大きく塞ぐ。
+// 門は柱のあいだをくぐれるよう、舟着きは水ぎわなので素通り（0）。
 const HEIAN_SOLIDS = buildSolids({
   trees: TREES,
   pillars: PILLARS,
   landmarks: LANDMARKS,
-  landmarkR: { gate: 0, pagoda: 1.0, hall: 1.1, boat: 0 },
+  landmarkR: { gate: 0, pagoda: 1.5, hall: 1.7, boat: 0 },
 })
 
 // 宵の絵日記：平安一日目だけの栞（文・草花・摂関・襲/寝殿）
@@ -79,10 +80,10 @@ export const heianPack: Pack = {
   epilogueHint: 'おわり',
   guideRows: [
     ['あるく', '行きたい方を、タップ'],
-    ['ふれる', '草花や人に、近づいて'],
+    ['ふれる', '光る名所や、草花・人に'],
     ['えらぶ', 'ことばは、心のままに'],
   ],
-  guideNote: '日が暮れたら、宵に絵日記を。七日を生きて、目をさます。',
+  guideNote: '光の柱がのぼる名所にふれると、時代の頁が年表にひらく。日が暮れたら、寝所で宵の絵日記を。',
   outfits: [
     { name: '山吹', color: '#e0a63e', under: '#c98a2e' },
     { name: '朽葉', color: '#a8683a', under: '#8a5a30' },

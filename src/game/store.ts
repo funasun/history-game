@@ -39,6 +39,7 @@ interface GameState {
   playerPos: [number, number]
   bookOpen: boolean
   toast: string | null             // flower species id
+  pageToast: string | null         // 名所でひらいた出来事の名（年表へ誘う）
 
   chooseEra: (id: string) => void
   start: (fresh: boolean) => void
@@ -57,6 +58,7 @@ interface GameState {
   sleep: () => void
   setBookOpen: (v: boolean) => void
   clearToast: () => void
+  clearPageToast: () => void
 }
 
 const START_T = 0.2
@@ -101,6 +103,7 @@ export const useGame = create<GameState>((set, get) => ({
   playerPos: [-3, -6],
   bookOpen: false,
   toast: null,
+  pageToast: null,
 
   // ホームで篇をえらぶ：セーブ層も切り替え、その篇の扉（Title）へ
   chooseEra: (id) => {
@@ -256,6 +259,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   setBookOpen: (v) => set({ bookOpen: v }),
   clearToast: () => set({ toast: null }),
+  clearPageToast: () => set({ pageToast: null }),
 }))
 
 if (import.meta.env.DEV) (window as unknown as { game: typeof useGame }).game = useGame
@@ -323,9 +327,12 @@ function resolve(id: string, set: Set, get: Get) {
     const m = pack.landmarkById(id.slice(5))
     if (!m) return
     // 名所にふれる＝その出来事を見た。頁がひらき、年表に加わる。
+    const fresh = m.events.filter(e => !s.learnedEvents.includes(e))
+    const title = fresh.length ? (pack.TIMELINE.find(e => e.id === fresh[0])?.title ?? null) : null
     const learnedEvents = [...new Set([...s.learnedEvents, ...m.events])]
     set({
       learnedEvents,
+      pageToast: title,
       mode: 'dialogue',
       dialogue: { lines: m.scene, i: 0, then: 'roam' },
     })

@@ -91,20 +91,48 @@ export function Toast() {
   )
 }
 
+// 名所をひらいたら、その出来事の頁が年表に加わった合図（学びへ誘う）
+export function PageToast() {
+  const pageToast = useGame(s => s.pageToast)
+  const mode = useGame(s => s.mode)
+  const clear = useGame(s => s.clearPageToast)
+  const show = mode === 'roam' && !!pageToast
+  useEffect(() => {
+    if (!show) return
+    const id = setTimeout(clear, 4200)
+    return () => clearTimeout(id)
+  }, [show, clear])
+  if (!show) return null
+  return (
+    <div className="page-toast" style={washi()} key={pageToast}>
+      <div className="pt-head">年表に、頁がひらいた</div>
+      <div className="pt-title">{pageToast}</div>
+      <div className="pt-foot">絵日記でよめる</div>
+    </div>
+  )
+}
+
 export function Hud() {
   const t = useGame(s => s.t)
   const day = useGame(s => s.day)
+  const learned = useGame(s => s.learnedEvents)
   const setBookOpen = useGame(s => s.setBookOpen)
   const pack = getPack()
   const isNight = t >= 0.72
   const a = Math.PI * Math.min(t / 0.9, 1)
   const cx = 36 - 28 * Math.cos(a)
   const cy = 40 - 32 * Math.sin(a)
+  const marks = pack.LANDMARKS
   return (
     <>
       <div className="hud-book" style={washi()} onClick={() => setBookOpen(true)}>絵日記</div>
       <div className="hud-pages">
         {Array.from({ length: pack.LAST_DAY }, (_, i) => <span key={i} className={i < day ? 'on' : ''} />)}
+      </div>
+      <div className="hud-marks">
+        {marks.map(m => (
+          <span key={m.id} className={m.events.every(e => learned.includes(e)) ? 'on' : ''} />
+        ))}
       </div>
       <div className="hud-time">
         <svg width="72" height="46" viewBox="0 0 72 46">

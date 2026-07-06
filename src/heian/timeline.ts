@@ -137,7 +137,7 @@ export const LANDMARKS: Landmark[] = [
   },
   {
     id: 'tou', label: '五重塔', kind: 'pagoda',
-    pos: [22, 2], approach: [20.3, 2],
+    pos: [22, 2], approach: [19.2, 2],
     events: ['bukkyo'],
     scene: [
       { text: '塀のむこうの五重塔を見あげると、頁がひらいた。' },
@@ -149,7 +149,7 @@ export const LANDMARKS: Landmark[] = [
   },
   {
     id: 'mido', label: '阿弥陀堂', kind: 'hall',
-    pos: [-9, 14], approach: [-9, 12.2],
+    pos: [-9, 14], approach: [-9, 11.4],
     events: ['mappo', 'oshu'],
     scene: [
       { text: '池のほとりの金色の御堂に、手を合わせる。' },
