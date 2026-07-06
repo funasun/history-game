@@ -3,6 +3,7 @@
 import type { ComponentType } from 'react'
 import type { DialogueLine } from './store'
 import type { FlowerSpec } from '../engine/textures'
+import type { Circle } from './solids'
 
 // figure は両篇で同じ狭い型（strictFunctionTypes 下で charPos を渡すため広げない）
 export type PackFigure = 'aruji' | 'nyobo' | 'hime' | 'warawa'
@@ -64,6 +65,7 @@ export interface Pack {
   spawn: [number, number]
   blocked: (x: number, z: number) => boolean
   groundY: (x: number, z: number) => number
+  solids: Circle[] // 木・柱・名所の当たり円（人は毎フレーム別に組む）
   // 会話
   getDialogue: (charId: string, ctx: { talked: Record<string, number>; zufu: string[]; letterSeen: boolean; day: number; flags: string[] }) => DialogueLine[]
   WAKE_LINES: DialogueLine[]
@@ -109,4 +111,9 @@ export function getPack(): Pack { return PACKS[activeId] }
 export function activeEraId(): string { return activeId }
 export function setActiveEra(id: string) {
   if (PACKS[id]) { activeId = id; setSaveEra(id) }
+}
+
+// 開発時のみ：篇の切替と参照を検証用に露出（本番ビルドでは消える）
+if (import.meta.env.DEV) {
+  (globalThis as Record<string, unknown>).__pack = { getPack, setActiveEra, activeEraId, PACKS }
 }

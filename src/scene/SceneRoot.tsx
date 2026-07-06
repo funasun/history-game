@@ -5,6 +5,7 @@ import { useGame } from '../game/store'
 import { getPack } from '../game/pack'
 import { World } from './World'
 import { Player, Characters, Flowers, Bed, Landmarks } from './actors'
+import { Life } from './Life'
 import { playerWorld } from '../game/live'
 
 function Atmosphere() {
@@ -52,6 +53,7 @@ export function SceneRoot() {
       <Characters />
       <Bed />
       <Player />
+      <Life />
     </Canvas>
   )
 }

@@ -6,10 +6,19 @@ import { FACTS, factById } from './facts'
 import { CHARACTERS, charById, charPos } from './characters'
 import { FLOWERS, FLOWER_SPOTS, flowerById } from './flowers'
 import { DAY_EVENTS, LAST_DAY } from './days'
-import { BED, blocked, groundY } from './layout'
+import { BED, blocked, groundY, TREES, PILLARS } from './layout'
 import { getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, BED_EARLY } from './dialogues'
 import { skyColor, tintColor } from './palette'
 import { HeianWorld, HeianLandmarkMesh } from './world'
+import { buildSolids } from '../game/solids'
+
+// 木・柱・名所に当たりを付ける。門と舟出は素通りさせる（近づいて調べる場所なので0）。
+const HEIAN_SOLIDS = buildSolids({
+  trees: TREES,
+  pillars: PILLARS,
+  landmarks: LANDMARKS,
+  landmarkR: { gate: 0, pagoda: 1.0, hall: 1.1, boat: 0 },
+})
 
 // 宵の絵日記：平安一日目だけの栞（文・草花・摂関・襲/寝殿）
 function diaryExtras(c: DiaryCtx): DiaryExtra {
@@ -43,7 +52,7 @@ export const heianPack: Pack = {
   CHARACTERS, charById, charPos,
   FLOWERS, FLOWER_SPOTS, flowerById,
   DAY_EVENTS, LAST_DAY,
-  BED, spawn: [-3, -6], blocked, groundY,
+  BED, spawn: [-3, -6], blocked, groundY, solids: HEIAN_SOLIDS,
   getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, BED_EARLY,
   World: HeianWorld, LandmarkMesh: HeianLandmarkMesh, skyColor, tintColor,
   hasFlowers: true, hasLetter: true,

@@ -433,3 +433,40 @@ export function haloCanvas(): HTMLCanvasElement {
   ctx.fillRect(0, 0, 128, 128)
   return c
 }
+
+// ---------- 生きている庭（舞う葉・足もとの輪） ----------
+
+// 舞い落ちる一葉。白で描き、材質の color で秋の色に染める。
+export function leafCanvas(): HTMLCanvasElement {
+  const [c, ctx] = mk(64, 64)
+  const cx = 32, cy = 32, r = 22
+  ctx.fillStyle = '#ffffff'
+  // 楓の五裂：中心から三角の葉先を放射状に
+  for (let i = 0; i < 5; i++) {
+    const a = -Math.PI / 2 + (i - 2) * 0.6
+    ctx.beginPath()
+    ctx.moveTo(cx, cy + 4)
+    ctx.lineTo(cx + Math.cos(a - 0.18) * r, cy + Math.sin(a - 0.18) * r)
+    ctx.lineTo(cx + Math.cos(a) * r * 1.3, cy + Math.sin(a) * r * 1.3)
+    ctx.lineTo(cx + Math.cos(a + 0.18) * r, cy + Math.sin(a + 0.18) * r)
+    ctx.closePath()
+    ctx.fill()
+  }
+  // 茎
+  ctx.strokeStyle = '#ffffff'; ctx.lineWidth = 2.5
+  ctx.beginPath(); ctx.moveTo(cx, cy + 4); ctx.lineTo(cx, cy + 24); ctx.stroke()
+  return c
+}
+
+// 足もとに立つ、やわらかな土ぼこりの輪。白で描き、材質の color で染める。
+export function ringCanvas(): HTMLCanvasElement {
+  const [c, ctx] = mk(128, 128)
+  const g = ctx.createRadialGradient(64, 64, 20, 64, 64, 62)
+  g.addColorStop(0, 'rgba(255,255,255,0)')
+  g.addColorStop(0.55, 'rgba(255,255,255,0)')
+  g.addColorStop(0.78, 'rgba(255,255,255,0.7)')
+  g.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, 128, 128)
+  return c
+}

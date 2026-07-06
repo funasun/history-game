@@ -6,6 +6,9 @@ export const playerWorld = new THREE.Vector3(-3, 0, -6)
 // 押されている移動キー
 export const heldKeys = new Set<string>()
 
+// 開発時のみ、当たり判定の検証用にプレイヤー位置を覗けるようにする（本番ビルドでは消える）
+if (import.meta.env.DEV) (globalThis as Record<string, unknown>).__pw = playerWorld
+
 const DIRS: Record<string, [number, number]> = {
   ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
   w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0],

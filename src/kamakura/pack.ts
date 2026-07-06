@@ -6,10 +6,18 @@ import { FACTS, factById } from './facts'
 import { CHARACTERS, charById, charPos } from './characters'
 import { FLOWERS, FLOWER_SPOTS, flowerById } from './flowers'
 import { DAY_EVENTS, LAST_DAY } from './days'
-import { BED, SPAWN, blocked, groundY } from './layout'
+import { BED, SPAWN, blocked, groundY, TREES } from './layout'
 import { getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, BED_EARLY } from './dialogues'
 import { skyColor, tintColor } from './palette'
 import { KamakuraWorld, KamakuraLandmarkMesh } from './world'
+import { buildSolids } from '../game/solids'
+
+// 木と名所（社・大仏・政庁）に当たりを付ける。由比ヶ浜は海がすでに壁なので0。
+const KAMAKURA_SOLIDS = buildSolids({
+  trees: TREES,
+  landmarks: LANDMARKS,
+  landmarkR: { shrine: 1.3, daibutsu: 1.3, seat: 1.2, sea: 0 },
+})
 
 export const kamakuraPack: Pack = {
   id: 'kamakura',
@@ -18,7 +26,7 @@ export const kamakuraPack: Pack = {
   CHARACTERS, charById, charPos,
   FLOWERS, FLOWER_SPOTS, flowerById,
   DAY_EVENTS, LAST_DAY,
-  BED, spawn: SPAWN, blocked, groundY,
+  BED, spawn: SPAWN, blocked, groundY, solids: KAMAKURA_SOLIDS,
   getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, BED_EARLY,
   World: KamakuraWorld, LandmarkMesh: KamakuraLandmarkMesh, skyColor, tintColor,
   hasFlowers: false, hasLetter: false,

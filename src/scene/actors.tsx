@@ -6,6 +6,7 @@ import { getPack } from '../game/pack'
 import { P } from '../heian/palette'
 import { toTexture, flowerCanvas, haloCanvas, faceCanvas, type FigureKind } from '../engine/textures'
 import { playerWorld, keyDir } from '../game/live'
+import { resolveMove } from '../game/collide'
 
 const noRaycast = () => null
 const SKIN = '#f0e2c8'
@@ -146,23 +147,19 @@ export function Player() {
   const rotY = useRef(0)
 
   const syncAcc = useRef(0)
+  const stuck = useRef(0)
 
   useFrame((_, dt) => {
     const s = useGame.getState()
-    const { blocked, groundY } = getPack()
+    const { groundY } = getPack()
     const p = pos.current
+    const t = s.t
     const dir = s.mode === 'roam' ? keyDir() : null
     if (dir) {
       // キー移動：タップ目的地は破棄
       if (s.target || s.pending) useGame.setState({ target: null, pending: null })
       const step = 3.4 * dt
-      let nx = p.x + dir[0] * step
-      let nz = p.z + dir[1] * step
-      if (blocked(nx, nz)) {
-        if (!blocked(nx, p.z)) nz = p.z
-        else if (!blocked(p.x, nz)) nx = p.x
-        else { nx = p.x; nz = p.z }
-      }
+      const [nx, nz] = resolveMove(p.x, p.z, p.x + dir[0] * step, p.z + dir[1] * step, t)
       if (Math.hypot(nx - p.x, nz - p.z) > 0.0001) {
         rotY.current = turnToward(rotY.current, Math.atan2(nx - p.x, nz - p.z), Math.min(1, 12 * dt))
         p.x = nx; p.z = nz
@@ -177,24 +174,29 @@ export function Player() {
       const dx = tx - p.x, dz = tz - p.z
       const d = Math.hypot(dx, dz)
       if (d < 0.15) {
+        stuck.current = 0
         s.arrive(p.x, p.z)
       } else {
         const step = Math.min(3.4 * dt, d)
-        let nx = p.x + (dx / d) * step
-        let nz = p.z + (dz / d) * step
-        if (blocked(nx, nz)) {
-          if (!blocked(nx, p.z)) nz = p.z
-          else if (!blocked(p.x, nz)) nx = p.x
-          else { useGame.setState({ target: null, pending: null }); nx = p.x; nz = p.z }
-        }
-        if (Math.hypot(nx - p.x, nz - p.z) > 0.001) {
+        const [nx, nz] = resolveMove(p.x, p.z, p.x + (dx / d) * step, p.z + (dz / d) * step, t)
+        const moved = Math.hypot(nx - p.x, nz - p.z)
+        if (moved > 0.001) {
           rotY.current = turnToward(rotY.current, Math.atan2(nx - p.x, nz - p.z), Math.min(1, 12 * dt))
         }
         p.x = nx; p.z = nz
+        // 物や人にはばまれて進めない時間が続いたら、その目的地はあきらめる
+        if (moved < step * 0.5) stuck.current += dt
+        else stuck.current = 0
+        if (stuck.current > 0.5) {
+          stuck.current = 0
+          useGame.setState({ target: null, pending: null })
+        }
       }
     } else {
-      // 立ち止まったらこちら（南）を向く
+      // 立ち止まったらこちら（南）を向く。重なりがあればそっと押し出す。
       rotY.current = turnToward(rotY.current, 0, Math.min(1, 4 * dt))
+      const [ex, ez] = resolveMove(p.x, p.z, p.x, p.z, t)
+      p.x = ex; p.z = ez
     }
     if (!dir && syncAcc.current > 0) {
       syncAcc.current = 0
