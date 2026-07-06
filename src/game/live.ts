@@ -6,6 +6,10 @@ export const playerWorld = new THREE.Vector3(-3, 0, -6)
 // 押されている移動キー
 export const heldKeys = new Set<string>()
 
+// マウス/指のドラッグ操舵：押し続けているあいだ、カーソルの指す方へ歩く。
+// on はドラッグ判定が確定してから true になる（素早い単クリックでは立たない）。
+export const drive = { on: false }
+
 // 開発時のみ、当たり判定の検証用にプレイヤー位置を覗けるようにする（本番ビルドでは消える）
 if (import.meta.env.DEV) (globalThis as Record<string, unknown>).__pw = playerWorld
 

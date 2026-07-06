@@ -7,7 +7,7 @@ import { getPack } from '../game/pack'
 import { World } from './World'
 import { Player, Characters, Flowers, Bed, Landmarks, GuideMote } from './actors'
 import { Life } from './Life'
-import { playerWorld } from '../game/live'
+import { playerWorld, drive } from '../game/live'
 
 function Atmosphere() {
   const scene = useThree(s => s.scene)
@@ -24,6 +24,26 @@ function Atmosphere() {
 }
 
 const look = new THREE.Vector3(playerWorld.x, 0, playerWorld.z)
+
+// ドラッグ操舵：押し続けているあいだ、カーソル下の地面へ向かって歩き続ける。
+// 素早い単クリック（drive.on=false）では働かないので、既存のタップ移動・触れるは温存。
+const DRIVE_PLANE = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+const driveHit = new THREE.Vector3()
+function MouseDrive() {
+  useFrame(({ raycaster, camera, pointer }) => {
+    if (!drive.on) return
+    const g = useGame.getState()
+    if (g.mode !== 'roam') { drive.on = false; return }
+    raycaster.setFromCamera(pointer, camera)
+    if (!raycaster.ray.intersectPlane(DRIVE_PLANE, driveHit)) return
+    const dx = driveHit.x - playerWorld.x
+    const dz = driveHit.z - playerWorld.z
+    // カーソルが足もと近くなら止まる。少し離れていれば、そこへ向かい続ける。
+    if (Math.hypot(dx, dz) < 0.6) { if (g.target) useGame.setState({ target: null }); return }
+    useGame.setState({ target: [driveHit.x, driveHit.z], pending: null })
+  })
+  return null
+}
 
 function CameraRig() {
   const camera = useThree(s => s.camera)
@@ -93,6 +113,7 @@ export function SceneRoot() {
       <Bed />
       <Player />
       <GuideMote />
+      <MouseDrive />
       <Life />
     </Canvas>
   )

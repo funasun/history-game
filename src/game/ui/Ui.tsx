@@ -183,9 +183,14 @@ export function Epilogue() {
   return <StorySlides slides={pack.epilogue} onDone={toTitle} lastHint={pack.epilogueHint} />
 }
 
+// 端末で操作のいいまわしを変える（PCではキーボード／ドラッグも案内）
+const isTouchDevice = () =>
+  typeof navigator !== 'undefined' && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window)
+
 export function Guide() {
   const wake = useGame(s => s.wake)
   const pack = getPack()
+  const touch = isTouchDevice()
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!e.repeat) wake() }
@@ -205,6 +210,11 @@ export function Guide() {
         ))}
       </div>
       <div className="guide-note">{pack.guideNote}</div>
+      <div className="guide-controls">
+        {touch
+          ? 'ゆびでタップ、または画面をなぞって歩けます。'
+          : '矢印キー・WASD、または画面をドラッグで歩けます。触れるは スペース／Enter。'}
+      </div>
       <button className="guide-start" onClick={wake}>この世に入る</button>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useGame } from './game/store'
-import { heldKeys, isMoveKey } from './game/live'
+import { heldKeys, isMoveKey, drive } from './game/live'
 import { SceneRoot } from './scene/SceneRoot'
 import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, PageToast, Hud, Home, Title, Prologue, Guide, Epilogue } from './game/ui/Ui'
 import { DiaryNight, DiaryBook } from './game/ui/Diary'
@@ -22,6 +22,40 @@ export default function App() {
       const w = s.mode === 'roam' || s.mode === 'dialogue' || s.mode === 'outfit' || s.mode === 'letter' || s.mode === 'diary'
       return w && s.t >= 0.55
     })
+  }, [])
+
+  // マウス/指のドラッグ操舵：地面を押し続けると、カーソルの指す方へ歩き続ける。
+  // 素早い単クリックはしきい値未満なので従来どおり（点への移動・触れる）。
+  useEffect(() => {
+    let onCanvas = false, x0 = 0, y0 = 0, t0 = 0, dragging = false
+    const down = (e: PointerEvent) => {
+      onCanvas = e.target instanceof HTMLCanvasElement && useGame.getState().mode === 'roam'
+      if (!onCanvas) return
+      x0 = e.clientX; y0 = e.clientY; t0 = performance.now(); dragging = false
+    }
+    const move = (e: PointerEvent) => {
+      if (!onCanvas || dragging) return
+      // 少し動いたか、少し長く押したら「ドラッグ操舵」に切り替える
+      if (Math.hypot(e.clientX - x0, e.clientY - y0) > 6 || performance.now() - t0 > 160) {
+        dragging = true
+        drive.on = true
+      }
+    }
+    const up = () => {
+      onCanvas = false
+      dragging = false
+      drive.on = false
+    }
+    window.addEventListener('pointerdown', down)
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+    window.addEventListener('pointercancel', up)
+    return () => {
+      window.removeEventListener('pointerdown', down)
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      window.removeEventListener('pointercancel', up)
+    }
   }, [])
 
   // キーボード：矢印/WASDで歩く、スペース/Enterで触れる・会話を送る、1〜3で選ぶ

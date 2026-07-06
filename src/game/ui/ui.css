@@ -482,6 +482,7 @@ html.force-landscape #root {
 }
 .guide-gloss { color: #a7a49b; font-size: 14px; letter-spacing: 0.1em; }
 .guide-note { color: #8b877c; font-size: 12.5px; letter-spacing: 0.14em; margin-top: 4px; }
+.guide-controls { color: #6f6c64; font-size: 11.5px; letter-spacing: 0.1em; margin-top: -6px; }
 .guide-start {
   margin-top: 12px; font-family: inherit; font-size: 16px; letter-spacing: 0.3em;
   padding: 10px 32px; cursor: pointer; color: var(--gofun);
