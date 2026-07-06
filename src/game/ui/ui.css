@@ -335,7 +335,7 @@
   animation: blink 1.8s infinite;
 }
 
-/* 縦画面のときにそっと出す「横向き推奨」ヒント（強制はしない） */
+/* 縦画面ガード：横向き推奨 → 5秒でCSS強制横 */
 .rotate-guard {
   position: fixed; inset: 0; z-index: 300;
   background: #17181c;
@@ -354,6 +354,15 @@
 }
 .rotate-text { color: #e8e6df; font-size: 17px; letter-spacing: 0.14em; }
 .rotate-count { color: #8b877c; font-size: 13px; letter-spacing: 0.1em; }
+
+/* 強制横画面：#root を90度回して縦端末でも横レイアウトに */
+html.force-landscape #root {
+  position: fixed; top: 0; left: 0;
+  width: 100vh; height: 100vw;
+  width: 100dvh; height: 100dvw;
+  transform: rotate(90deg) translate(0, -100%);
+  transform-origin: top left;
+}
 
 /* ホーム（シリーズの表紙：時代の本棚） */
 .home-screen {
