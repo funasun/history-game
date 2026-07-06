@@ -1,6 +1,9 @@
 import type { DiaryEntry } from '../game/store'
 
-const KEY = 'tokiwatari-heian-v1'
+// セーブは時代ごとに分ける（tokiwatari-<era>-v1）。平安のキーは従来どおり。
+let era = 'heian'
+export function setSaveEra(id: string) { era = id }
+const KEY = () => `tokiwatari-${era}-v1`
 
 export interface SaveData {
   day: number
@@ -15,7 +18,7 @@ export interface SaveData {
 
 export function loadSave(): SaveData | null {
   try {
-    const raw = localStorage.getItem(KEY)
+    const raw = localStorage.getItem(KEY())
     return raw ? (JSON.parse(raw) as SaveData) : null
   } catch {
     return null
@@ -24,13 +27,13 @@ export function loadSave(): SaveData | null {
 
 export function writeSave(data: SaveData) {
   try {
-    localStorage.setItem(KEY, JSON.stringify(data))
+    localStorage.setItem(KEY(), JSON.stringify(data))
   } catch { /* 保存できない環境では諦める */ }
 }
 
 export function clearSave() {
   try {
-    localStorage.removeItem(KEY)
+    localStorage.removeItem(KEY())
   } catch { /* noop */ }
 }
 

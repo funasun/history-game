@@ -1,10 +1,5 @@
 import { create } from 'zustand'
-import { getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, BED_EARLY } from '../heian/dialogues'
-import { DAY_EVENTS, LAST_DAY } from '../heian/days'
-import { CHARACTERS, charById, charPos } from '../heian/characters'
-import { FLOWER_SPOTS, flowerById } from '../heian/flowers'
-import { LANDMARKS, landmarkById } from '../heian/timeline'
-import { BED } from '../heian/layout'
+import { getPack, setActiveEra } from './pack'
 import { loadSave, writeSave, clearSave } from '../engine/save'
 import { playerWorld } from './live'
 
@@ -45,6 +40,7 @@ interface GameState {
   bookOpen: boolean
   toast: string | null             // flower species id
 
+  chooseEra: (id: string) => void
   start: (fresh: boolean) => void
   wake: () => void
   toHome: () => void
@@ -67,18 +63,19 @@ const START_T = 0.2
 let tAcc = 0
 
 function interactablePos(id: string, t: number): [number, number] | null {
-  if (id === 'bed') return [BED.x + 1.2, BED.z + 1]
+  const pack = getPack()
+  if (id === 'bed') return [pack.BED.x + 1.2, pack.BED.z + 1]
   if (id.startsWith('char:')) {
-    const c = charById(id.slice(5))
-    const [x, z] = charPos(c, t)
+    const c = pack.charById(id.slice(5))
+    const [x, z] = pack.charPos(c, t)
     return [x, z + 1.4]
   }
   if (id.startsWith('flower:')) {
-    const spot = FLOWER_SPOTS.find(s => s.id === id.slice(7))
+    const spot = pack.FLOWER_SPOTS.find(s => s.id === id.slice(7))
     if (spot) return [spot.x, spot.z + 0.9]
   }
   if (id.startsWith('mark:')) {
-    const m = landmarkById(id.slice(5))
+    const m = pack.landmarkById(id.slice(5))
     if (m) return m.approach
   }
   return null
@@ -105,17 +102,24 @@ export const useGame = create<GameState>((set, get) => ({
   bookOpen: false,
   toast: null,
 
+  // ホームで篇をえらぶ：セーブ層も切り替え、その篇の扉（Title）へ
+  chooseEra: (id) => {
+    setActiveEra(id)
+    set({ mode: 'title', dialogue: null })
+  },
+
   start: (fresh) => {
+    const pack = getPack()
     const save = fresh ? null : loadSave()
     if (save) {
-      const morning = DAY_EVENTS[save.day]?.morning
+      const morning = pack.DAY_EVENTS[save.day]?.morning
       set({
         day: save.day, t: START_T, outfit: save.outfit,
         zufu: save.zufu, talked: save.talked, diary: save.diary,
         letterSeen: save.letterSeen, flags: save.flags ?? [],
         learnedEvents: save.learnedEvents ?? [],
         collected: [], talkedToday: [], dayEventDone: false,
-        playerPos: [-3, -6],
+        playerPos: pack.spawn,
         mode: morning ? 'dialogue' : 'roam',
         dialogue: morning ? { lines: morning, i: 0, then: 'roam' } : null,
       })
@@ -124,12 +128,12 @@ export const useGame = create<GameState>((set, get) => ({
         mode: 'prologue', day: 1, t: START_T, outfit: null,
         zufu: [], talked: {}, talkedToday: [], diary: [],
         letterSeen: false, dayEventDone: false, flags: [], learnedEvents: [],
-        collected: [], playerPos: [-3, -6], dialogue: null,
+        collected: [], playerPos: pack.spawn, dialogue: null,
       })
     }
   },
 
-  wake: () => set({ mode: 'dialogue', dialogue: { lines: WAKE_LINES, i: 0, then: 'outfit' } }),
+  wake: () => set({ mode: 'dialogue', dialogue: { lines: getPack().WAKE_LINES, i: 0, then: 'outfit' } }),
 
   toHome: () => set({ mode: 'home', dialogue: null }),
   toTitle: () => set({ mode: 'title', dialogue: null }),
@@ -216,7 +220,7 @@ export const useGame = create<GameState>((set, get) => ({
   chooseOutfit: (color) => {
     set({
       outfit: color, mode: 'dialogue',
-      dialogue: { lines: OUTFIT_DONE_LINES, i: 0, then: 'roam' },
+      dialogue: { lines: getPack().OUTFIT_DONE_LINES, i: 0, then: 'roam' },
     })
   },
 
@@ -226,21 +230,22 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   sleep: () => {
+    const pack = getPack()
     const s = get()
-    if (s.day >= LAST_DAY) {
+    if (s.day >= pack.LAST_DAY) {
       clearSave()
       set({ mode: 'epilogue', dialogue: null, target: null, pending: null })
       return
     }
     const day = s.day + 1
-    const morning = DAY_EVENTS[day]?.morning
-    // 七日目の朝、萩の君の押し葉が図譜にも挟まる
-    const zufu = day === LAST_DAY && !s.zufu.includes('momiji') ? [...s.zufu, 'momiji'] : s.zufu
+    const morning = pack.DAY_EVENTS[day]?.morning
+    // 篇ごとの図譜フック（平安：最終日にもみぢの押し葉が挟まる）
+    const zufu = pack.onSleepZufu ? pack.onSleepZufu(day, s.zufu) : s.zufu
     set({
       day, t: START_T, collected: [], talkedToday: [], dayEventDone: false, zufu,
       mode: morning ? 'dialogue' : 'roam',
       dialogue: morning ? { lines: morning, i: 0, then: 'roam' } : null,
-      target: null, pending: null, playerPos: [-3, -6],
+      target: null, pending: null, playerPos: pack.spawn,
     })
     writeSave({
       day, outfit: s.outfit, zufu, talked: s.talked,
@@ -256,16 +261,17 @@ export const useGame = create<GameState>((set, get) => ({
 if (import.meta.env.DEV) (window as unknown as { game: typeof useGame }).game = useGame
 
 function nearestInteractable(x: number, z: number, s: GameState, radius = 1.3): string | null {
+  const pack = getPack()
   const cand: [string, number, number][] = []
-  for (const c of CHARACTERS) {
-    const [cx, cz] = charPos(c, s.t)
+  for (const c of pack.CHARACTERS) {
+    const [cx, cz] = pack.charPos(c, s.t)
     cand.push([`char:${c.id}`, cx, cz])
   }
-  for (const f of FLOWER_SPOTS) {
+  for (const f of pack.FLOWER_SPOTS) {
     if (!s.collected.includes(f.id)) cand.push([`flower:${f.id}`, f.x, f.z])
   }
-  for (const m of LANDMARKS) cand.push([`mark:${m.id}`, m.pos[0], m.pos[1]])
-  cand.push(['bed', BED.x, BED.z])
+  for (const m of pack.LANDMARKS) cand.push([`mark:${m.id}`, m.pos[0], m.pos[1]])
+  cand.push(['bed', pack.BED.x, pack.BED.z])
   let best: string | null = null
   let bestD = radius
   for (const [id, cx, cz] of cand) {
@@ -285,7 +291,7 @@ function beat(set: Set, get: Get) {
 function maybeEvening(set: Set, get: Get) {
   const s = get()
   if (s.mode !== 'roam' || s.dayEventDone) return
-  const ev = DAY_EVENTS[s.day]?.evening
+  const ev = getPack().DAY_EVENTS[s.day]?.evening
   if (ev && s.t >= ev.at) {
     set({
       dayEventDone: true, target: null, pending: null, mode: 'dialogue',
@@ -295,23 +301,26 @@ function maybeEvening(set: Set, get: Get) {
 }
 
 function resolve(id: string, set: Set, get: Get) {
+  const pack = getPack()
   const s = get()
   if (id === 'bed') {
     // 宵の出来事が残っていれば、先にそちらへ
-    const ev = DAY_EVENTS[s.day]?.evening
+    const ev = pack.DAY_EVENTS[s.day]?.evening
     if (!s.dayEventDone && ev && s.t >= ev.at) {
       maybeEvening(set, get)
       return
     }
-    if (s.t >= 0.7 && (s.day !== 1 || s.letterSeen)) {
+    // 平安の一日目だけは文（手紙）を見てから寝る。文のない篇は素通り。
+    const gate = s.day === 1 && pack.hasLetter && !s.letterSeen
+    if (s.t >= 0.7 && !gate) {
       openDiary(set, get)
     } else {
-      set({ mode: 'dialogue', dialogue: { lines: BED_EARLY, i: 0, then: 'roam' } })
+      set({ mode: 'dialogue', dialogue: { lines: pack.BED_EARLY, i: 0, then: 'roam' } })
     }
     return
   }
   if (id.startsWith('mark:')) {
-    const m = landmarkById(id.slice(5))
+    const m = pack.landmarkById(id.slice(5))
     if (!m) return
     // 名所にふれる＝その出来事を見た。頁がひらき、年表に加わる。
     const learnedEvents = [...new Set([...s.learnedEvents, ...m.events])]
@@ -324,7 +333,7 @@ function resolve(id: string, set: Set, get: Get) {
   }
   if (id.startsWith('char:')) {
     const charId = id.slice(5)
-    const lines = getDialogue(charId, {
+    const lines = pack.getDialogue(charId, {
       talked: s.talked, zufu: s.zufu, letterSeen: s.letterSeen, day: s.day, flags: s.flags,
     })
     set({
@@ -338,7 +347,7 @@ function resolve(id: string, set: Set, get: Get) {
   }
   if (id.startsWith('flower:')) {
     const spotId = id.slice(7)
-    const spot = FLOWER_SPOTS.find(f => f.id === spotId)
+    const spot = pack.FLOWER_SPOTS.find(f => f.id === spotId)
     if (!spot || s.collected.includes(spotId)) return
     const zufu = s.zufu.includes(spot.species) ? s.zufu : [...s.zufu, spot.species]
     set({ collected: [...s.collected, spotId], zufu, toast: spot.species })
@@ -349,33 +358,34 @@ function resolve(id: string, set: Set, get: Get) {
 
 // 宵の絵日記：今日の体験から1〜2行と栞を組む（読ませない）
 function openDiary(set: Set, get: Get) {
+  const pack = getPack()
   const s = get()
   const lines: string[] = []
   const icons: string[] = []
   const factIds: string[] = []
-  const dayEv = DAY_EVENTS[s.day]
+  const dayEv = pack.DAY_EVENTS[s.day]
 
   if (dayEv?.diaryLine) lines.push(dayEv.diaryLine)
   if (dayEv?.facts) factIds.push(...dayEv.facts)
   if (dayEv?.icons) icons.push(...dayEv.icons)
 
-  const species = [...new Set(s.collected.map(id => FLOWER_SPOTS.find(f => f.id === id)!.species))]
+  const species = [...new Set(s.collected.map(id => pack.FLOWER_SPOTS.find(f => f.id === id)!.species))]
   if (species.length >= 3) {
     lines.push('けふ、庭で花をたくさん摘んだ。')
   } else if (species.length > 0) {
-    lines.push(`けふ、庭で${flowerById(species[0]).kana}を摘んだ。`)
+    lines.push(`けふ、庭で${pack.flowerById(species[0]).kana}を摘んだ。`)
   }
   icons.push(...species)
 
-  if (s.day === 1) {
-    if (s.letterSeen) {
-      lines.push('萩の君から、もみぢの文をもらった。')
-      icons.push('letter')
-      factIds.push('fumi')
-    }
-    if (species.length > 0) factIds.push((s.zufu.length >= 3 && (s.talked['kojiju'] ?? 0) >= 2) ? 'nanakusa' : 'akikusa')
-    if ((s.talked['aruji'] ?? 0) >= 2) factIds.push('sekkan')
-    factIds.push(s.outfit ? 'kasane' : 'shinden')
+  // 篇ごとの宵の栞（平安の一日目など）
+  if (pack.diaryExtras) {
+    const extra = pack.diaryExtras({
+      day: s.day, letterSeen: s.letterSeen, zufu: s.zufu,
+      talked: s.talked, outfit: s.outfit, species,
+    })
+    if (extra.lines) lines.push(...extra.lines)
+    if (extra.icons) icons.push(...extra.icons)
+    if (extra.factIds) factIds.push(...extra.factIds)
   }
 
   // その日の会話から加わる栞

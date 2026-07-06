@@ -15,7 +15,7 @@ export const ERAS: Era[] = [
   { id: 'asuka',    name: '飛鳥',     year: '592',     available: false },
   { id: 'nara',     name: '奈良',     year: '710',     available: false },
   { id: 'heian',    name: '平安',     year: '794',     volume: '平安篇', available: true },
-  { id: 'kamakura', name: '鎌倉',     year: '1185',    available: false },
+  { id: 'kamakura', name: '鎌倉',     year: '1185',    volume: '鎌倉篇', available: true },
   { id: 'muromachi',name: '室町',     year: '1336',    available: false },
   { id: 'sengoku',  name: '戦国',     year: '1467',    available: false },
   { id: 'azuchi',   name: '安土桃山', year: '1573',    available: false },

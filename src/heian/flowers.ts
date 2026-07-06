@@ -1,12 +1,6 @@
-// 秋の草花（図譜の対象）
-export interface FlowerSpec {
-  id: string
-  kana: string          // 図譜に載る名（かな）
-  petal: string         // 花の色
-  accent: string        // 芯・実の色
-  stem: string
-  form: 'kiku' | 'bell' | 'dots' | 'plume' | 'spray' | 'maple'
-}
+// 秋の草花（図譜の対象）。FlowerSpec は engine/textures に定義（時代共有）。
+import type { FlowerSpec } from '../engine/textures'
+export type { FlowerSpec }
 
 export const FLOWERS: FlowerSpec[] = [
   { id: 'kiku',      kana: 'きく',       petal: '#f4efdd', accent: '#e0b83e', stem: '#5a7f5f', form: 'kiku' },

@@ -3,7 +3,7 @@ import type { RootState } from '@react-three/fiber'
 import { PerspectiveCamera } from '@react-three/drei'
 import * as THREE from 'three'
 import { useGame } from '../game/store'
-import { skyColor } from '../heian/palette'
+import { getPack } from '../game/pack'
 import { World } from './World'
 import { Player, Characters, Flowers, Bed, Landmarks } from './actors'
 import { playerWorld } from '../game/live'
@@ -13,7 +13,7 @@ function Atmosphere() {
   useFrame((_, dt) => {
     useGame.getState().tick(dt)
     const t = useGame.getState().t
-    const col = skyColor(t)
+    const col = getPack().skyColor(t)
     if (!(scene.background instanceof THREE.Color)) scene.background = new THREE.Color(col)
     else scene.background.set(col)
     if (!scene.fog) scene.fog = new THREE.Fog(col, 34, 70)

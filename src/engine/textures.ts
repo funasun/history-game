@@ -1,7 +1,16 @@
 // 大和絵スプライトの手続き生成（AIアセット差し替えまでのプレースホルダー兼スタイル定義）
 import * as THREE from 'three'
 import { P } from '../heian/palette'
-import type { FlowerSpec } from '../heian/flowers'
+
+// 草花スプライトの仕様（時代をまたいで共有する型の元）
+export interface FlowerSpec {
+  id: string
+  kana: string          // 図譜に載る名（かな）
+  petal: string         // 花の色
+  accent: string        // 芯・実の色
+  stem: string
+  form: 'kiku' | 'bell' | 'dots' | 'plume' | 'spray' | 'maple'
+}
 
 const SUMI = P.sumi
 

@@ -1,22 +1,21 @@
 import { useState } from 'react'
 import { useGame } from '../store'
-import { FLOWERS, flowerById } from '../../heian/flowers'
-import { factById } from '../../heian/facts'
-import { TIMELINE } from '../../heian/timeline'
+import { getPack } from '../pack'
+import type { TLEvent } from '../pack'
 import { washiDataURL, flowerDataURL, letterDataURL } from '../../engine/textures'
-import { dateLabel } from './date'
 
 const washi = () => ({ backgroundImage: `url(${washiDataURL()})` })
 
 function iconSrc(id: string): string {
   if (id === 'letter') return letterDataURL()
-  return flowerDataURL(flowerById(id))
+  return flowerDataURL(getPack().flowerById(id))
 }
 
 // 宵：けふの一枚
 export function DiaryNight() {
   const diary = useGame(s => s.diary)
   const sleep = useGame(s => s.sleep)
+  const pack = getPack()
   const entry = diary[diary.length - 1]
   const [openFact, setOpenFact] = useState<string | null>(null)
   const [deep, setDeep] = useState(false)
@@ -33,7 +32,7 @@ export function DiaryNight() {
     <div className="panel-wrap">
       <div className="panel diary" style={washi()}>
         <div className="diary-body">
-          <div className="date">{dateLabel(entry.day)}</div>
+          <div className="date">{pack.dateLabel(entry.day)}</div>
           <div className="picture">
             {entry.icons.length > 0
               ? entry.icons.map((ic, i) => <img key={i} src={iconSrc(ic)} alt="" style={{ transform: `rotate(${(i - 1) * 4}deg)` }} />)
@@ -47,7 +46,7 @@ export function DiaryNight() {
         <div className="shiori-row">
           {entry.factIds.map(fid => (
             <button key={fid} className="shiori" onClick={() => { setOpenFact(fid); setDeep(false) }}>
-              {factById(fid).tag}
+              {pack.factById(fid).tag}
             </button>
           ))}
         </div>
@@ -55,10 +54,10 @@ export function DiaryNight() {
         {openFact && (
           <div className="factcard" style={washi()}>
             <button className="back" onClick={() => setOpenFact(null)}>✕</button>
-            <div className="tag">{factById(openFact).tag}</div>
-            <div className="short">{factById(openFact).short}</div>
+            <div className="tag">{pack.factById(openFact).tag}</div>
+            <div className="short">{pack.factById(openFact).short}</div>
             {deep
-              ? <div className="deep">{factById(openFact).deep}</div>
+              ? <div className="deep">{pack.factById(openFact).deep}</div>
               : <button className="more" onClick={() => setDeep(true)}>……もっと</button>}
           </div>
         )}
@@ -79,13 +78,15 @@ export function DiaryBook() {
   const zufu = useGame(s => s.zufu)
   const learnedEvents = useGame(s => s.learnedEvents)
   const setBookOpen = useGame(s => s.setBookOpen)
+  const pack = getPack()
+  const TIMELINE = pack.TIMELINE
   const [tab, setTab] = useState<'nenpyo' | 'nikki' | 'zufu' | 'shiori'>('nenpyo')
   const [openFact, setOpenFact] = useState<string | null>(null)
   const [openEvent, setOpenEvent] = useState<string | null>(null)
   const learned = [...new Set(diary.flatMap(e => e.factIds))]
   // 栞（文化）を得ていれば、その出来事も「見た」とみなす
   const factSet = new Set(learned)
-  const witnessed = (ev: typeof TIMELINE[number]) =>
+  const witnessed = (ev: TLEvent) =>
     learnedEvents.includes(ev.id) || (!!ev.factId && factSet.has(ev.factId))
   const seenCount = TIMELINE.filter(witnessed).length
 
@@ -95,7 +96,7 @@ export function DiaryBook() {
         <button className="close" onClick={() => setBookOpen(false)}>✕</button>
         <div className="tabs">
           <button className={tab === 'nenpyo' ? 'on' : ''} onClick={() => setTab('nenpyo')}>年表</button>
-          <button className={tab === 'zufu' ? 'on' : ''} onClick={() => setTab('zufu')}>草花の図譜</button>
+          {pack.hasFlowers && <button className={tab === 'zufu' ? 'on' : ''} onClick={() => setTab('zufu')}>草花の図譜</button>}
           <button className={tab === 'nikki' ? 'on' : ''} onClick={() => setTab('nikki')}>これまでの頁</button>
           <button className={tab === 'shiori' ? 'on' : ''} onClick={() => setTab('shiori')}>栞のたまり</button>
         </div>
@@ -103,7 +104,7 @@ export function DiaryBook() {
         {tab === 'nenpyo' && (
           <div className="nenpyo">
             <div className="nenpyo-head">
-              <span className="nenpyo-title">平安のあゆみ</span>
+              <span className="nenpyo-title">{pack.nenpyoTitle}</span>
               <span className="nenpyo-count">見た出来事　{seenCount} / {TIMELINE.length}</span>
             </div>
             <div className="nenpyo-list">
@@ -130,13 +131,13 @@ export function DiaryBook() {
                 )
               })}
             </div>
-            <div className="nenpyo-foot">庭の名所にふれ、七日を生きて、頁をうめてゆく。</div>
+            <div className="nenpyo-foot">{pack.nenpyoFoot}</div>
           </div>
         )}
 
         {tab === 'zufu' && (
           <div className="zufu-grid">
-            {FLOWERS.map(f => zufu.includes(f.id) ? (
+            {pack.FLOWERS.map(f => zufu.includes(f.id) ? (
               <div key={f.id} className="zufu-cell">
                 <img src={flowerDataURL(f)} alt={f.kana} />
                 <div className="kana">{f.kana}</div>
@@ -155,7 +156,7 @@ export function DiaryBook() {
             ? <div className="book-empty">まだ、なにも書かれていない。</div>
             : diary.map((e, i) => (
               <div key={i} className="book-page">
-                <div className="date">{dateLabel(e.day)}</div>
+                <div className="date">{pack.dateLabel(e.day)}</div>
                 <div>{e.icons.map((ic, j) => <img key={j} src={iconSrc(ic)} alt="" />)}</div>
                 {e.lines.map((l, j) => <div key={j} className="dline">{l}</div>)}
               </div>
@@ -167,7 +168,7 @@ export function DiaryBook() {
             ? <div className="book-empty">栞は、まだ挟まっていない。</div>
             : <div className="shiori-list">
               {learned.map(fid => {
-                const f = factById(fid)
+                const f = pack.factById(fid)
                 const open = openFact === fid
                 return (
                   <div key={fid} className={`shiori-item${open ? ' open' : ''}`} onClick={() => setOpenFact(open ? null : fid)}>

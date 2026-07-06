@@ -2,10 +2,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGame } from '../game/store'
-import { CHARACTERS, charPos } from '../heian/characters'
-import { FLOWER_SPOTS, flowerById } from '../heian/flowers'
-import { LANDMARKS, type Landmark } from '../heian/timeline'
-import { BED, blocked, groundY } from '../heian/layout'
+import { getPack } from '../game/pack'
 import { P } from '../heian/palette'
 import { toTexture, flowerCanvas, haloCanvas, faceCanvas, type FigureKind } from '../engine/textures'
 import { playerWorld, keyDir } from '../game/live'
@@ -144,13 +141,15 @@ function turnToward(cur: number, target: number, k: number): number {
 export function Player() {
   const group = useRef<THREE.Group>(null)
   const outfit = useGame(s => s.outfit)
-  const pos = useRef(new THREE.Vector3(-3, 0, -6))
+  const [sx, sz] = useGame.getState().playerPos   // 篇ごとの出発地点
+  const pos = useRef(new THREE.Vector3(sx, 0, sz))
   const rotY = useRef(0)
 
   const syncAcc = useRef(0)
 
   useFrame((_, dt) => {
     const s = useGame.getState()
+    const { blocked, groundY } = getPack()
     const p = pos.current
     const dir = s.mode === 'roam' ? keyDir() : null
     if (dir) {
@@ -220,6 +219,7 @@ export function Player() {
 export function Characters() {
   const t = useGame(s => s.t)
   const interact = useGame(s => s.interact)
+  const { CHARACTERS, charPos, groundY } = getPack()
   return (
     <group>
       {CHARACTERS.map(c => {
@@ -244,6 +244,7 @@ export function Characters() {
 export function Flowers() {
   const collected = useGame(s => s.collected)
   const interact = useGame(s => s.interact)
+  const { FLOWER_SPOTS, flowerById } = getPack()
   return (
     <group>
       {FLOWER_SPOTS.filter(f => !collected.includes(f.id)).map(f => {
@@ -274,6 +275,7 @@ export function Flowers() {
 export function Bed() {
   const t = useGame(s => s.t)
   const interact = useGame(s => s.interact)
+  const { BED, groundY } = getPack()
   const gy = groundY(BED.x, BED.z)
   const sleepy = t >= 0.7
   return (
@@ -294,13 +296,11 @@ export function Bed() {
   )
 }
 
-// 名所（時代の頁がひらく場所）：朱雀門・五重塔・阿弥陀堂・舟着き
-const LROOF = '#4f3d2f'
-const LRIDGE = '#3a2d22'
-
+// 名所（時代の頁がひらく場所）。立体は各篇の pack.LandmarkMesh が持つ。
 export function Landmarks() {
   const interact = useGame(s => s.interact)
   const learned = useGame(s => s.learnedEvents)
+  const { LANDMARKS, groundY, LandmarkMesh } = getPack()
   return (
     <group>
       {LANDMARKS.map(m => {
@@ -313,80 +313,11 @@ export function Landmarks() {
               position={[m.pos[0], gy, m.pos[1]]}
               onClick={e => { e.stopPropagation(); interact(`mark:${m.id}`) }}
             >
-              <Landmark3D kind={m.kind} />
+              <LandmarkMesh kind={m.kind} />
             </group>
           </group>
         )
       })}
-    </group>
-  )
-}
-
-function Landmark3D({ kind }: { kind: Landmark['kind'] }) {
-  if (kind === 'gate') {
-    return (
-      <group>
-        {[-2.2, 2.2].map((x, i) => (
-          <mesh key={i} position={[x, 2.4, 0]}>
-            <boxGeometry args={[0.5, 4.8, 0.5]} />
-            <meshLambertMaterial color={P.shu} />
-          </mesh>
-        ))}
-        <mesh position={[0, 3.5, 0]}><boxGeometry args={[5.6, 0.42, 0.6]} /><meshLambertMaterial color={P.shu} /></mesh>
-        <mesh position={[0, 4.3, 0]}><boxGeometry args={[6.2, 0.4, 0.7]} /><meshLambertMaterial color={P.woodDark} /></mesh>
-        <mesh position={[0, 4.75, 0]}><boxGeometry args={[7, 0.4, 2]} /><meshLambertMaterial color={LROOF} /></mesh>
-        <mesh position={[0, 5.05, 0]}><boxGeometry args={[7.2, 0.18, 0.5]} /><meshLambertMaterial color={LRIDGE} /></mesh>
-      </group>
-    )
-  }
-  if (kind === 'pagoda') {
-    let y = 0.3
-    return (
-      <group>
-        <mesh position={[0, 0.15, 0]}><boxGeometry args={[3, 0.3, 3]} /><meshLambertMaterial color={P.sand} /></mesh>
-        {[0, 1, 2, 3, 4].map(i => {
-          const bw = 2.3 - i * 0.32
-          const bh = 1.05
-          const by = y + bh / 2
-          const ry = y + bh + 0.05
-          y += bh + 0.35
-          return (
-            <group key={i}>
-              <mesh position={[0, by, 0]}><boxGeometry args={[bw, bh, bw]} /><meshLambertMaterial color={i % 2 ? P.woodDark : '#8a3c2e'} /></mesh>
-              <mesh position={[0, ry, 0]}><boxGeometry args={[bw + 1, 0.3, bw + 1]} /><meshLambertMaterial color={LROOF} /></mesh>
-            </group>
-          )
-        })}
-        <mesh position={[0, y + 0.6, 0]}><cylinderGeometry args={[0.08, 0.08, 1.4, 8]} /><meshLambertMaterial color={P.kin} /></mesh>
-      </group>
-    )
-  }
-  if (kind === 'hall') {
-    return (
-      <group>
-        <mesh position={[0, 0.2, 0]}><boxGeometry args={[6.4, 0.4, 3.2]} /><meshLambertMaterial color={P.sand} /></mesh>
-        <mesh position={[0, 1.2, 0]}><boxGeometry args={[3, 1.6, 2.4]} /><meshLambertMaterial color={P.shu} /></mesh>
-        {[-2.4, 2.4].map((x, i) => (
-          <mesh key={i} position={[x, 0.9, 0]}><boxGeometry args={[1.8, 1, 1.4]} /><meshLambertMaterial color={P.shu} /></mesh>
-        ))}
-        <mesh position={[0, 2.3, 0]}><boxGeometry args={[3.6, 0.4, 3]} /><meshLambertMaterial color={LROOF} /></mesh>
-        <mesh position={[0, 2.62, 0]}><boxGeometry args={[3.8, 0.18, 0.5]} /><meshLambertMaterial color={P.kin} /></mesh>
-        <mesh position={[0, 1.2, -1.3]} rotation-y={Math.PI} raycast={() => null}>
-          <circleGeometry args={[0.5, 20]} />
-          <meshBasicMaterial color={P.kin} />
-        </mesh>
-      </group>
-    )
-  }
-  // boat：舟着き（西の岸から池へ）
-  return (
-    <group>
-      <mesh position={[1.2, 0.2, 0]}><boxGeometry args={[3, 0.16, 1.1]} /><meshLambertMaterial color={P.wood} /></mesh>
-      <mesh position={[0.2, 0.5, 0.6]}><cylinderGeometry args={[0.1, 0.1, 1.2, 8]} /><meshLambertMaterial color={P.woodDark} /></mesh>
-      <group position={[2.8, 0.12, -0.2]} rotation-y={0.3}>
-        <mesh><boxGeometry args={[0.85, 0.3, 2.4]} /><meshLambertMaterial color={P.woodDark} /></mesh>
-        <mesh position={[0, 0.04, 0]} scale={[0.72, 1, 0.9]}><boxGeometry args={[0.85, 0.26, 2.4]} /><meshLambertMaterial color={P.wood} /></mesh>
-      </group>
     </group>
   )
 }
