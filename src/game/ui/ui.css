@@ -525,6 +525,79 @@ html.force-landscape #root {
 }
 .title-screen button:hover { background: rgba(200,162,75,0.16); }
 
+/* 足もとの触れ札：近づくと下に出て、押せば触れる。PCではスペースの符も添える */
+.touch-prompt {
+  position: absolute; bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  animation: touchpromptin 0.3s ease-out;
+}
+.touch-prompt button {
+  display: flex; align-items: center; gap: 12px;
+  font-family: inherit; cursor: pointer;
+  background: rgba(244,238,218,0.94); background-size: cover;
+  border: 1.5px solid rgba(42,36,30,0.5); border-left: 3px solid var(--kin);
+  border-radius: 6px; padding: 9px 20px;
+  box-shadow: 0 4px 16px rgba(20,15,10,0.4);
+  color: var(--sumi);
+}
+.touch-prompt button:hover { background: rgba(255,252,240,0.99); transform: translateY(-1px); }
+.touch-prompt button:active { transform: translateY(1px); }
+.tp-label { font-size: 16px; letter-spacing: 0.14em; }
+.tp-key {
+  flex: none; font-size: 10.5px; letter-spacing: 0.12em;
+  color: var(--sumi); opacity: 0.72;
+  border: 1px solid rgba(42,36,30,0.4); border-radius: 3px;
+  padding: 2px 8px; background: rgba(42,36,30,0.06);
+}
+@keyframes touchpromptin {
+  from { opacity: 0; transform: translate(-50%, 10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* 宵の問い（絵日記の中。採点せず、そっと答え合わせ） */
+.yoi-quiz {
+  flex: none;
+  margin: 14px 0 2px; padding-top: 13px;
+  border-top: 1px dashed rgba(42,36,30,0.3);
+}
+.yq-head {
+  font-size: 11px; letter-spacing: 0.3em; color: var(--shu); opacity: 0.9;
+  text-align: center;
+}
+.yq-q {
+  font-size: 16px; line-height: 1.8; letter-spacing: 0.06em;
+  text-align: center; margin: 8px 0 12px;
+}
+.yq-choices { display: flex; flex-direction: column; gap: 8px; }
+.yq-choice {
+  font-family: inherit; font-size: 15px; letter-spacing: 0.08em;
+  padding: 9px 16px; cursor: pointer;
+  background: rgba(255,252,240,0.6); color: var(--sumi);
+  border: 1.2px solid rgba(42,36,30,0.4); border-radius: 4px;
+  transition: background 0.2s, border-color 0.2s, opacity 0.2s;
+}
+.yq-choice:hover:not(:disabled) { border-color: var(--shu); }
+.yq-choice:disabled { cursor: default; }
+.yq-choice.right {
+  background: rgba(200,162,75,0.22); color: var(--sumi);
+  border-color: var(--kin); box-shadow: 0 0 0 1px var(--kin) inset;
+}
+.yq-choice.wrong {
+  background: rgba(176,82,62,0.14); border-color: #b0523e; color: #8a3e30;
+}
+.yq-choice.dim { opacity: 0.42; }
+.yq-note {
+  font-size: 13.5px; line-height: 1.85; letter-spacing: 0.04em;
+  margin-top: 12px; padding: 10px 14px;
+  background: rgba(42,36,30,0.05); border-radius: 4px;
+  border-left: 3px solid var(--kin);
+  animation: yqnotein 0.4s ease-out;
+}
+@keyframes yqnotein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+/* 年表のまだ見ぬ頁：ひらき方をそっと示す手引き */
+.tl-hint { color: #7a5230; letter-spacing: 0.08em; }
+
 /* 横画面スマホは背が低い（320〜430px）。縦組みの外題が収まるよう詰める */
 @media (max-height: 460px) {
   .title-screen { gap: 20px; }

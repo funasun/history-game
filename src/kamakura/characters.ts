@@ -14,7 +14,7 @@ export const CHARACTERS: CharacterDef[] = [
     // 御家人：将軍に仕える武士。烏帽子に直垂。
     id: 'gokenin', name: '御家人', figure: 'aruji',
     robes: ['#3a4a5c', '#e7dcc0'],
-    day: [11, -6], evening: [4.2, 2.2], scale: 1.95,
+    day: [9.5, -5.2], evening: [4.2, 2.2], scale: 1.95,
   },
   {
     // 尼御台：政（まつりごと）を見つめる女人。北条政子のおもかげ。

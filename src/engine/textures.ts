@@ -423,6 +423,33 @@ export function letterDataURL(): string {
   return letterUrl
 }
 
+// 名所に立てる縦書きの名前板（立て札）。濃い木地に金の縁、白の楷書。
+// text の文字数ぶんだけ縦に伸びる。板の寸法は LABEL_CELL/LABEL_W/LABEL_PAD で決まる。
+export const LABEL_CELL = 84
+export const LABEL_W = 96
+export const LABEL_PAD = 24
+export function labelHeightPx(text: string): number {
+  return LABEL_PAD * 2 + [...text].length * LABEL_CELL
+}
+export function labelCanvas(text: string): HTMLCanvasElement {
+  const chars = [...text]
+  const w = LABEL_W
+  const h = labelHeightPx(text)
+  const [c, ctx] = mk(w, h)
+  // 板（濃い木地）＋金の縁：同じ角丸パスを塗りと線で使い回す
+  ctx.beginPath()
+  ctx.roundRect(6, 6, w - 12, h - 12, 14)
+  ctx.fillStyle = 'rgba(38,32,26,0.82)'; ctx.fill()
+  ctx.strokeStyle = 'rgba(214,183,110,0.92)'; ctx.lineWidth = 3.5; ctx.stroke()
+  // 文字（縦・白）
+  ctx.fillStyle = '#f4eeda'
+  ctx.font = '600 62px "Hiragino Mincho ProN","Yu Mincho",serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  chars.forEach((ch, i) => ctx.fillText(ch, w / 2, LABEL_PAD + LABEL_CELL * i + LABEL_CELL / 2))
+  return c
+}
+
 export function haloCanvas(): HTMLCanvasElement {
   const [c, ctx] = mk(128, 128)
   const g = ctx.createRadialGradient(64, 64, 8, 64, 64, 60)

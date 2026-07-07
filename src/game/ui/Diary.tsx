@@ -11,15 +11,64 @@ function iconSrc(id: string): string {
   return flowerDataURL(getPack().flowerById(id))
 }
 
+interface Quiz { q: string; choices: string[]; answer: number; note: string }
+
+function shuffle<T>(a: T[]): T[] {
+  const r = [...a]
+  for (let i = r.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[r[i], r[j]] = [r[j], r[i]]
+  }
+  return r
+}
+
+// 宵の問い：見た出来事から、年号と人／出来事をむすぶ一問をつくる（採点せず、そっと答え合わせ）
+function makeQuiz(pool: TLEvent[]): Quiz | null {
+  if (pool.length < 3) return null
+  const e = shuffle(pool)[0]
+  const askFigure = Math.random() < 0.5
+  const key: 'figure' | 'title' = askFigure ? 'figure' : 'title'
+  const answerVal = e[key]
+  const distract: string[] = []
+  const seen = new Set<string>([answerVal])
+  for (const x of shuffle(pool)) {
+    if (!seen.has(x[key])) { seen.add(x[key]); distract.push(x[key]) }
+    if (distract.length >= 2) break
+  }
+  if (distract.length < 2) return null
+  const choices = shuffle([answerVal, ...distract])
+  return {
+    q: askFigure ? `${e.year}年『${e.title}』に ゆかりの人は？` : `${e.wa}（${e.year}年）に おきたことは？`,
+    choices,
+    answer: choices.indexOf(answerVal),
+    note: askFigure ? `${e.figure}。${e.line}` : `『${e.title}』。${e.line}`,
+  }
+}
+
+// 年表でまだ見ぬ頁に、ひらき方をそっと示す（何をすればよいか、迷わせない）
+function lockedHint(ev: TLEvent): string {
+  const pack = getPack()
+  const m = pack.LANDMARKS.find(l => l.events.includes(ev.id))
+  if (m) return `${m.label}にふれると、ひらく`
+  if (ev.factId) return '宵のくらしの栞から、ひらくことがある'
+  return 'この世をあるくうちに、めぐりあう'
+}
+
 // 宵：けふの一枚
 export function DiaryNight() {
   const diary = useGame(s => s.diary)
+  const learnedEvents = useGame(s => s.learnedEvents)
   const sleep = useGame(s => s.sleep)
   const pack = getPack()
   const entry = diary[diary.length - 1]
   const [openFact, setOpenFact] = useState<string | null>(null)
   const [deep, setDeep] = useState(false)
   const [sleeping, setSleeping] = useState(false)
+  // 見た出来事（名所＋栞）から、宵の問いを一問。見た数が少ない日は出さない。
+  const factSet = new Set(diary.flatMap(e => e.factIds))
+  const pool = pack.TIMELINE.filter(e => learnedEvents.includes(e.id) || (!!e.factId && factSet.has(e.factId)))
+  const [quiz] = useState(() => makeQuiz(pool))
+  const [picked, setPicked] = useState<number | null>(null)
 
   if (!entry) return null
 
@@ -40,6 +89,22 @@ export function DiaryNight() {
           </div>
           {entry.lines.map((l, i) => <div key={i} className="dline">{l}</div>)}
         </div>
+
+        {quiz && !openFact && (
+          <div className="yoi-quiz">
+            <div className="yq-head">宵の問い</div>
+            <div className="yq-q">{quiz.q}</div>
+            <div className="yq-choices">
+              {quiz.choices.map((c, i) => {
+                const cls = picked == null ? '' : i === quiz.answer ? ' right' : i === picked ? ' wrong' : ' dim'
+                return (
+                  <button key={i} className={`yq-choice${cls}`} disabled={picked != null} onClick={() => setPicked(i)}>{c}</button>
+                )
+              })}
+            </div>
+            {picked != null && <div className="yq-note">{quiz.note}</div>}
+          </div>
+        )}
 
         {!openFact && <button className="sleep-btn" onClick={doSleep}>ねむる</button>}
 
@@ -127,6 +192,7 @@ export function DiaryBook() {
                     </div>
                     {w && !open && <div className="tl-line">{ev.line}</div>}
                     {w && open && <div className="tl-deep">{ev.deep}</div>}
+                    {!w && <div className="tl-line tl-hint">{lockedHint(ev)}</div>}
                   </div>
                 )
               })}

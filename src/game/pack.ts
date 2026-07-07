@@ -17,6 +17,9 @@ export interface Landmark {
   id: string; label: string; kind: string
   pos: [number, number]; approach: [number, number]
   events: string[]; scene: DialogueLine[]
+  // reach: 名所の中心からこの距離まで近づけば「ふれた」ことにする（当たり円より広い）
+  // labelY: 立て札（名前板）を出す高さ。屋根や台座の上に浮かせて読ませる。
+  reach: number; labelY: number
 }
 
 export interface Fact { id: string; tag: string; short: string; deep: string }

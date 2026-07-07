@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { getPack, setActiveEra } from './pack'
+import type { TLEvent } from './pack'
 import { loadSave, writeSave, clearSave } from '../engine/save'
 import { playerWorld } from './live'
 
@@ -40,6 +41,7 @@ interface GameState {
   bookOpen: boolean
   toast: string | null             // flower species id
   pageToast: string | null         // 名所でひらいた出来事の名（年表へ誘う）
+  nearby: { id: string; label: string } | null  // 足もとの触れられるもの（下部の札に出す）
 
   chooseEra: (id: string) => void
   start: (fresh: boolean) => void
@@ -104,6 +106,7 @@ export const useGame = create<GameState>((set, get) => ({
   bookOpen: false,
   toast: null,
   pageToast: null,
+  nearby: null,
 
   // ホームで篇をえらぶ：セーブ層も切り替え、その篇の扉（Title）へ
   chooseEra: (id) => {
@@ -173,9 +176,18 @@ export const useGame = create<GameState>((set, get) => ({
   interact: (id) => {
     const s = get()
     if (s.mode !== 'roam') return
+    const px = playerWorld.x, pz = playerWorld.z
+    // 名所は「中心から reach 内」ならもう触れたとみなし、即その頁をひらく（反応を軽く）
+    if (id.startsWith('mark:')) {
+      const m = getPack().landmarkById(id.slice(5))
+      if (m && Math.hypot(m.pos[0] - px, m.pos[1] - pz) <= m.reach) {
+        set({ target: null, pending: null })
+        resolve(id, set, get)
+        return
+      }
+    }
     const pos = interactablePos(id, s.t)
     if (!pos) return
-    const px = playerWorld.x, pz = playerWorld.z
     const d = Math.hypot(pos[0] - px, pos[1] - pz)
     if (d < 1.4) {
       set({ target: null })
@@ -264,25 +276,60 @@ export const useGame = create<GameState>((set, get) => ({
 
 if (import.meta.env.DEV) (window as unknown as { game: typeof useGame }).game = useGame
 
+// いちばん近い触れられるものを返す。名所は当たり円より広い reach まで受けるので、
+// 「光の方をタップ／近づく」だけで拾える（花・人・褥は radius のまま）。
 function nearestInteractable(x: number, z: number, s: GameState, radius = 1.3): string | null {
   const pack = getPack()
-  const cand: [string, number, number][] = []
+  let best: string | null = null
+  let bestD = Infinity
+  const consider = (id: string, cx: number, cz: number, rad: number) => {
+    const d = Math.hypot(cx - x, cz - z)
+    if (d <= rad && d < bestD) { bestD = d; best = id }
+  }
   for (const c of pack.CHARACTERS) {
     const [cx, cz] = pack.charPos(c, s.t)
-    cand.push([`char:${c.id}`, cx, cz])
+    consider(`char:${c.id}`, cx, cz, radius)
   }
   for (const f of pack.FLOWER_SPOTS) {
-    if (!s.collected.includes(f.id)) cand.push([`flower:${f.id}`, f.x, f.z])
+    if (!s.collected.includes(f.id)) consider(`flower:${f.id}`, f.x, f.z, radius)
   }
-  for (const m of pack.LANDMARKS) cand.push([`mark:${m.id}`, m.pos[0], m.pos[1]])
-  cand.push(['bed', pack.BED.x, pack.BED.z])
-  let best: string | null = null
-  let bestD = radius
-  for (const [id, cx, cz] of cand) {
-    const d = Math.hypot(cx - x, cz - z)
-    if (d < bestD) { bestD = d; best = id }
-  }
+  for (const m of pack.LANDMARKS) consider(`mark:${m.id}`, m.pos[0], m.pos[1], Math.max(radius, m.reach))
+  consider('bed', pack.BED.x, pack.BED.z, radius)
   return best
+}
+
+// いま歩いている先（pending）に「触れた」といえる円。名所は reach、ほかは足もと。
+export function pendingFireCircle(id: string, t: number): { x: number; z: number; r: number } | null {
+  const pack = getPack()
+  if (id.startsWith('mark:')) {
+    const m = pack.landmarkById(id.slice(5))
+    return m ? { x: m.pos[0], z: m.pos[1], r: m.reach } : null
+  }
+  const pos = interactablePos(id, t)
+  return pos ? { x: pos[0], z: pos[1], r: 1.1 } : null
+}
+
+// 足もとの触れられるもの（下部の札／スペース操作の対象）を、名で返す。
+function nearbyLabel(id: string): string {
+  const pack = getPack()
+  if (id === 'bed') return 'ねどこで やすむ'
+  if (id.startsWith('char:')) return `${pack.charById(id.slice(5)).name}と 話す`
+  if (id.startsWith('flower:')) {
+    const spot = pack.FLOWER_SPOTS.find(f => f.id === id.slice(7))
+    return spot ? `${pack.flowerById(spot.species).kana}を 摘む` : '摘む'
+  }
+  if (id.startsWith('mark:')) {
+    const m = pack.landmarkById(id.slice(5))
+    return m ? `${m.label}の頁を ひらく` : ''
+  }
+  return ''
+}
+
+export function findNearby(x: number, z: number): { id: string; label: string } | null {
+  const s = useGame.getState()
+  if (s.mode !== 'roam') return null
+  const id = nearestInteractable(x, z, s, 1.7)
+  return id ? { id, label: nearbyLabel(id) } : null
 }
 
 type Set = (p: Partial<GameState>) => void
@@ -328,13 +375,22 @@ function resolve(id: string, set: Set, get: Get) {
     if (!m) return
     // 名所にふれる＝その出来事を見た。頁がひらき、年表に加わる。
     const fresh = m.events.filter(e => !s.learnedEvents.includes(e))
-    const title = fresh.length ? (pack.TIMELINE.find(e => e.id === fresh[0])?.title ?? null) : null
+    const evs = fresh
+      .map(e => pack.TIMELINE.find(t => t.id === e))
+      .filter((e): e is TLEvent => !!e)
     const learnedEvents = [...new Set([...s.learnedEvents, ...m.events])]
+    const lines = [...m.scene]
+    // 語りのあとに、年号つきの一行を添える（読み物ではなく「頁が増えた」合図）
+    if (evs.length) {
+      const listed = evs.slice(0, 2).map(e => `${e.year}年『${e.title}』`).join('、')
+      const rest = evs.length > 2 ? ` ほか${evs.length - 2}件` : ''
+      lines.push({ speaker: '年表', text: `頁が加わった——${listed}${rest}。絵日記の年表で、くわしく読める。` })
+    }
     set({
       learnedEvents,
-      pageToast: title,
+      pageToast: evs.length ? evs[0].title : null,
       mode: 'dialogue',
-      dialogue: { lines: m.scene, i: 0, then: 'roam' },
+      dialogue: { lines, i: 0, then: 'roam' },
     })
     return
   }

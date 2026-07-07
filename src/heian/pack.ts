@@ -12,13 +12,17 @@ import { skyColor, tintColor } from './palette'
 import { HeianWorld, HeianLandmarkMesh } from './world'
 import { buildSolids } from '../game/solids'
 
-// 木・柱・名所に当たりを付ける。塔と御堂は見た目の土台ぶんだけ大きく塞ぐ。
-// 門は柱のあいだをくぐれるよう、舟着きは水ぎわなので素通り（0）。
+// 木・柱・名所に当たりを付ける。塔は土台ぶんだけ円で塞ぐ。
+// 御堂は角ばった土台なので円ではなく layout.blocked() の矩形で実寸に塞ぐ（hall:0）。
+// 門は柱のあいだ（中央 x=3）をくぐれるよう、柱の実寸だけ extra 円で塞ぐ。舟着きは水ぎわなので素通り（0）。
 const HEIAN_SOLIDS = buildSolids({
   trees: TREES,
   pillars: PILLARS,
   landmarks: LANDMARKS,
-  landmarkR: { gate: 0, pagoda: 1.5, hall: 1.7, boat: 0 },
+  landmarkR: { gate: 0, pagoda: 2.0, hall: 0, boat: 0 },
+  extra: [
+    { x: 0.8, z: 17, r: 0.4 }, { x: 5.2, z: 17, r: 0.4 }, // 朱雀門の二本の柱
+  ],
 })
 
 // 宵の絵日記：平安一日目だけの栞（文・草花・摂関・襲/寝殿）

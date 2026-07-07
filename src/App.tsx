@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { useGame } from './game/store'
 import { heldKeys, isMoveKey, drive } from './game/live'
 import { SceneRoot } from './scene/SceneRoot'
-import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, PageToast, Hud, Home, Title, Prologue, Guide, Epilogue } from './game/ui/Ui'
+import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, PageToast, Hud, TouchPrompt, Home, Title, Prologue, Guide, Epilogue } from './game/ui/Ui'
 import { DiaryNight, DiaryBook } from './game/ui/Diary'
 import { OrientationGuard } from './game/ui/Orientation'
 import { initAmbience } from './engine/ambience'
@@ -109,6 +109,7 @@ export default function App() {
       <div className="kasumi" />
       <div className="ui-layer">
         {mode === 'roam' && <Hud />}
+        {mode === 'roam' && <TouchPrompt />}
         {toast && <Toast />}
         {pageToast && <PageToast />}
         {mode === 'dialogue' && <DialogueBox />}

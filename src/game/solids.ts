@@ -8,6 +8,8 @@ interface SolidInput {
   landmarks?: readonly { pos: [number, number]; approach: [number, number]; kind: string }[]
   // 名所ごとの当たり半径（0 以下＝すり抜けられる＝当たりを置かない）
   landmarkR?: Record<string, number>
+  // 追加の当たり円（門柱・鳥居の柱など、実寸で塞ぎたい小物）
+  extra?: readonly Circle[]
 }
 
 // 木・柱・名所を当たり円の配列に変換する。
@@ -24,5 +26,6 @@ export function buildSolids(input: SolidInput): Circle[] {
     const r = Math.min(base, dApp - 0.85) // 接近点は必ず円の外側に残す
     if (r > 0.15) out.push({ x: m.pos[0], z: m.pos[1], r })
   }
+  for (const c of input.extra ?? []) out.push({ ...c })
   return out
 }

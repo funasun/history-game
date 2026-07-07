@@ -112,6 +112,23 @@ export function PageToast() {
   )
 }
 
+// 足もとに触れられるものがあれば、下に札を出す（押せば触れる）。
+// 「近くまで来たのに反応しない」を無くし、何に触れられるかを文字でも示す。
+export function TouchPrompt() {
+  const nearby = useGame(s => s.nearby)
+  const interact = useGame(s => s.interact)
+  const touch = isTouchDevice()
+  if (!nearby) return null
+  return (
+    <div className="touch-prompt" key={nearby.id}>
+      <button style={washi()} onClick={() => interact(nearby.id)}>
+        <span className="tp-label">{nearby.label}</span>
+        {!touch && <span className="tp-key">スペース</span>}
+      </button>
+    </div>
+  )
+}
+
 export function Hud() {
   const t = useGame(s => s.t)
   const day = useGame(s => s.day)

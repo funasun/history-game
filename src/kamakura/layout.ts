@@ -50,10 +50,21 @@ export const TREES: TreeDef[] = [
   { x: 19.5, z: 9, kind: 'pine', s: 1.15 },
 ]
 
-// 移動できない場所：境界の外、海のなか
+// 名所の据わり（社殿・大仏・政庁の土台）。角ばった建物は円ではなく矩形で実寸に塞ぐ。
+// world.tsx の石壇・基壇・土壇に合わせ、接近点（南面の外）は矩形の外に残す。
+export const BUILDINGS: { x0: number; x1: number; z0: number; z1: number }[] = [
+  { x0: -4.1, x1: 4.1, z0: -19.1, z1: -13.0 },   // 鶴岡八幡宮の石壇
+  { x0: -17.1, x1: -11.0, z0: -5.8, z1: -0.2 },  // 鎌倉大仏の基壇・蓮座
+  { x0: 8.9, x1: 17.1, z0: -12.1, z1: -6.0 },    // 政庁の土壇
+]
+
+// 移動できない場所：境界の外、海のなか、名所の土台
 export function blocked(x: number, z: number): boolean {
   if (x < BOUNDS.minX || x > BOUNDS.maxX || z < BOUNDS.minZ || z > BOUNDS.maxZ) return true
   if (z >= SEA_Z) return true
+  for (const b of BUILDINGS) {
+    if (x > b.x0 && x < b.x1 && z > b.z0 && z < b.z1) return true
+  }
   return false
 }
 

@@ -31,6 +31,10 @@ export const MISU: { x: number; z: number; w: number }[] = [
 export const POND = { x: -3, z: 8, rx: 8.5, rz: 4.2 }
 export const ISLAND = { x: -4.5, z: 8.5, r: 1.7 }
 
+// 阿弥陀堂の土台（角ばった建物は円ではなく矩形で実寸に塞ぐ）。
+// world.tsx の base[6.4,0.4,3.2]@[-9,_,14] に合わせ、南面 z=12.3 は接近点(z=11.4)より北に残す。
+export const HALL_RECT = { x0: -12.3, x1: -5.7, z0: 12.3, z1: 15.7 }
+
 // 遣水（北東から池へ）
 export const STREAM: { x: number; z: number; w: number; len: number; rot: number }[] = [
   { x: 13, z: -1, w: 0.9, len: 7, rot: 0.5 },
@@ -77,6 +81,8 @@ export const KICHO = [
 // 移動できない場所（池・床の外周は乗れる）
 export function blocked(x: number, z: number): boolean {
   if (x < BOUNDS.minX || x > BOUNDS.maxX || z < BOUNDS.minZ || z > BOUNDS.maxZ) return true
+  // 阿弥陀堂の土台（矩形）
+  if (x > HALL_RECT.x0 && x < HALL_RECT.x1 && z > HALL_RECT.z0 && z < HALL_RECT.z1) return true
   const dx = (x - POND.x) / POND.rx
   const dz = (z - POND.z) / POND.rz
   if (dx * dx + dz * dz < 1) {

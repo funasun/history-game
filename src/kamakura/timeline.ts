@@ -94,12 +94,15 @@ export interface Landmark {
   approach: [number, number]
   events: string[]
   scene: DialogueLine[]
+  reach: number                // 中心からこの距離まで近づけば「ふれた」ことにする
+  labelY: number               // 名前板（立て札）を出す高さ
 }
 
 export const LANDMARKS: Landmark[] = [
   {
     id: 'hachiman', label: '鶴岡八幡宮', kind: 'shrine',
     pos: [0, -16], approach: [0, -12.4],
+    reach: 4.4, labelY: 4.7,
     events: ['shugo', 'shogun'],
     scene: [
       { text: '朱の楼門に手をふれると、草子の頁がひらいた。' },
@@ -115,6 +118,7 @@ export const LANDMARKS: Landmark[] = [
   {
     id: 'daibutsu', label: '鎌倉大仏', kind: 'daibutsu',
     pos: [-14, -3], approach: [-10.9, -2],
+    reach: 4.0, labelY: 6.9,
     events: ['kongo', 'bukkyo'],
     scene: [
       { text: '青銅の大仏を見あげると、頁がしずかにひらいた。' },
@@ -129,7 +133,8 @@ export const LANDMARKS: Landmark[] = [
   },
   {
     id: 'seat', label: '政庁', kind: 'seat',
-    pos: [13, -9], approach: [10, -7.85],
+    pos: [13, -9], approach: [13, -5.2],
+    reach: 4.4, labelY: 4.2,
     events: ['shikken', 'jokyu', 'shikimoku', 'tokusei'],
     scene: [
       { text: '武家の政庁に立つと、草子の頁が大きくひらく。' },
@@ -144,6 +149,7 @@ export const LANDMARKS: Landmark[] = [
   {
     id: 'sea', label: '由比ヶ浜', kind: 'sea',
     pos: [0, 15.5], approach: [0, 11.6],
+    reach: 4.6, labelY: 7.0,
     events: ['genko', 'horobi'],
     scene: [
       { text: '渚の鳥居に立つと、潮騒が頁をめくった。' },

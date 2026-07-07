@@ -1,10 +1,10 @@
 import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useGame } from '../game/store'
+import { useGame, pendingFireCircle, findNearby } from '../game/store'
 import { getPack } from '../game/pack'
 import { P } from '../heian/palette'
-import { toTexture, flowerCanvas, haloCanvas, faceCanvas, type FigureKind } from '../engine/textures'
+import { toTexture, flowerCanvas, haloCanvas, faceCanvas, labelCanvas, labelHeightPx, LABEL_W, type FigureKind } from '../engine/textures'
 import { playerWorld, keyDir } from '../game/live'
 import { resolveMove } from '../game/collide'
 
@@ -148,13 +148,24 @@ export function Player() {
 
   const syncAcc = useRef(0)
   const stuck = useRef(0)
+  const nearAcc = useRef(0)
 
   useFrame((_, dt) => {
     const s = useGame.getState()
     const { groundY } = getPack()
     const p = pos.current
     const t = s.t
-    const dir = s.mode === 'roam' ? keyDir() : null
+    // 歩いていく先（pending）の触れ円に入ったら、到着を待たずその場でひらく＝反応を軽く
+    let fired = false
+    if (s.mode === 'roam' && s.pending) {
+      const c = pendingFireCircle(s.pending, t)
+      if (c && Math.hypot(c.x - p.x, c.z - p.z) <= c.r) {
+        stuck.current = 0
+        s.arrive(p.x, p.z)
+        fired = true
+      }
+    }
+    const dir = !fired && s.mode === 'roam' ? keyDir() : null
     if (dir) {
       // キー移動：タップ目的地は破棄
       if (s.target || s.pending) useGame.setState({ target: null, pending: null })
@@ -169,7 +180,7 @@ export function Player() {
         syncAcc.current = 0
         useGame.setState({ playerPos: [p.x, p.z] })
       }
-    } else if (s.target) {
+    } else if (!fired && s.target) {
       const [tx, tz] = s.target
       const dx = tx - p.x, dz = tz - p.z
       const d = Math.hypot(dx, dz)
@@ -184,15 +195,18 @@ export function Player() {
           rotY.current = turnToward(rotY.current, Math.atan2(nx - p.x, nz - p.z), Math.min(1, 12 * dt))
         }
         p.x = nx; p.z = nz
-        // 物や人にはばまれて進めない時間が続いたら、その目的地はあきらめる
+        // 物や人にはばまれて進めない時間が続いたら
         if (moved < step * 0.5) stuck.current += dt
         else stuck.current = 0
         if (stuck.current > 0.5) {
           stuck.current = 0
-          useGame.setState({ target: null, pending: null })
+          // はばまれても、触れ円の少し外まで来ていれば「触れた」とみなす（でなければあきらめる）
+          const c = s.pending ? pendingFireCircle(s.pending, t) : null
+          if (c && Math.hypot(c.x - p.x, c.z - p.z) <= c.r + 0.8) s.arrive(p.x, p.z)
+          else useGame.setState({ target: null, pending: null })
         }
       }
-    } else {
+    } else if (!fired) {
       // 立ち止まったらこちら（南）を向く。重なりがあればそっと押し出す。
       rotY.current = turnToward(rotY.current, 0, Math.min(1, 4 * dt))
       const [ex, ez] = resolveMove(p.x, p.z, p.x, p.z, t)
@@ -201,6 +215,14 @@ export function Player() {
     if (!dir && syncAcc.current > 0) {
       syncAcc.current = 0
       useGame.setState({ playerPos: [p.x, p.z] })
+    }
+    // 足もとの触れられるもの（下部の札）を、少し間引いて調べる
+    nearAcc.current += dt
+    if (nearAcc.current > 0.2) {
+      nearAcc.current = 0
+      const n = findNearby(p.x, p.z)
+      const cur = useGame.getState().nearby
+      if ((n?.id ?? null) !== (cur?.id ?? null)) useGame.setState({ nearby: n })
     }
     const gy = groundY(p.x, p.z)
     playerWorld.set(p.x, gy, p.z)
@@ -313,6 +335,30 @@ function Beacon({ x, z, y }: { x: number; z: number; y: number }) {
   )
 }
 
+// 名所に立てる名前板（立て札）。縦書きの名を、いつも読める向き（横回転のみ）でかかげる。
+// ふれると、その名所の頁がひらく（クリック対象を広げ、反応をよくする）。
+function NamePlate({ id, x, y, z, label, seen }: { id: string; x: number; y: number; z: number; label: string; seen: boolean }) {
+  const interact = useGame(s => s.interact)
+  const group = useRef<THREE.Group>(null)
+  const tex = useMemo(() => toTexture(`label-${label}`, () => labelCanvas(label)), [label])
+  const W = 0.42
+  const H = W * labelHeightPx(label) / LABEL_W
+  useFrame(({ clock, camera }) => {
+    const g = group.current
+    if (!g) return
+    g.position.y = y + 0.08 * Math.sin(clock.elapsedTime * 1.3)
+    g.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z)
+  })
+  return (
+    <group ref={group} position={[x, y, z]} onClick={e => { e.stopPropagation(); interact(id) }}>
+      <mesh>
+        <planeGeometry args={[W, H]} />
+        <meshBasicMaterial map={tex} transparent depthWrite={false} opacity={seen ? 0.62 : 0.95} />
+      </mesh>
+    </group>
+  )
+}
+
 // 名所（時代の頁がひらく場所）。立体は各篇の pack.LandmarkMesh が持つ。
 export function Landmarks() {
   const interact = useGame(s => s.interact)
@@ -332,7 +378,15 @@ export function Landmarks() {
               onClick={e => { e.stopPropagation(); interact(`mark:${m.id}`) }}
             >
               <LandmarkMesh kind={m.kind} />
+              {/* 光の柱を掴めるように、見えない筒でクリックを受ける（反応をよくする芯） */}
+              {!seen && (
+                <mesh position={[0, 5, 0]} renderOrder={-1}>
+                  <cylinderGeometry args={[1.0, 1.0, 10, 10]} />
+                  <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+                </mesh>
+              )}
             </group>
+            <NamePlate id={`mark:${m.id}`} x={m.pos[0]} y={gy + m.labelY} z={m.pos[1]} label={m.label} seen={seen} />
           </group>
         )
       })}

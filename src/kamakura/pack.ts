@@ -12,13 +12,14 @@ import { skyColor, tintColor } from './palette'
 import { KamakuraWorld, KamakuraLandmarkMesh } from './world'
 import { buildSolids } from '../game/solids'
 
-// 木と名所（社・大仏・政庁）に当たりを付ける。社殿・大仏・政庁は据わりが大きいので、
-// 建物の土台ぶんだけ広く塞ぐ（接近点は buildSolids のクランプで円の外に保たれる）。
-// 由比ヶ浜は海がすでに壁、鳥居はくぐれるので0。
+// 木に当たりを付ける。社殿・大仏・政庁は角ばった土台なので、円ではなく
+// layout.blocked() の矩形（BUILDINGS）で実寸に塞ぐ。由比ヶ浜は海がすでに壁。
+// 大鳥居はくぐれるが、二本の柱の実寸だけ extra 円で塞ぐ。
 const KAMAKURA_SOLIDS = buildSolids({
   trees: TREES,
-  landmarks: LANDMARKS,
-  landmarkR: { shrine: 2.2, daibutsu: 2.4, seat: 2.2, sea: 0 },
+  extra: [
+    { x: -2.76, z: 5, r: 0.34 }, { x: 2.76, z: 5, r: 0.34 }, // 大鳥居の二本の柱
+  ],
 })
 
 export const kamakuraPack: Pack = {

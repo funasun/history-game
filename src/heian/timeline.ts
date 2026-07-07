@@ -117,12 +117,15 @@ export interface Landmark {
   approach: [number, number]   // 前に立つ場所（ここまで歩いて触れる）
   events: string[]             // ひらく出来事
   scene: DialogueLine[]        // ひらいた頁の語り
+  reach: number                // 中心からこの距離まで近づけば「ふれた」ことにする
+  labelY: number               // 名前板（立て札）を出す高さ
 }
 
 export const LANDMARKS: Landmark[] = [
   {
     id: 'mon', label: '朱雀門', kind: 'gate',
     pos: [3, 17], approach: [3, 15.3],
+    reach: 2.6, labelY: 6.0,
     events: ['sento', 'tamuramaro'],
     scene: [
       { text: '朱雀門に手をふれると、草子の頁がひらいた。' },
@@ -137,7 +140,8 @@ export const LANDMARKS: Landmark[] = [
   },
   {
     id: 'tou', label: '五重塔', kind: 'pagoda',
-    pos: [22, 2], approach: [19.2, 2],
+    pos: [22, 2], approach: [18.9, 2],
+    reach: 3.4, labelY: 9.2,
     events: ['bukkyo'],
     scene: [
       { text: '塀のむこうの五重塔を見あげると、頁がひらいた。' },
@@ -150,6 +154,7 @@ export const LANDMARKS: Landmark[] = [
   {
     id: 'mido', label: '阿弥陀堂', kind: 'hall',
     pos: [-9, 14], approach: [-9, 11.4],
+    reach: 3.6, labelY: 3.6,
     events: ['mappo', 'oshu'],
     scene: [
       { text: '池のほとりの金色の御堂に、手を合わせる。' },
@@ -165,6 +170,7 @@ export const LANDMARKS: Landmark[] = [
   {
     id: 'funade', label: '舟着き', kind: 'boat',
     pos: [-12, 8], approach: [-13.5, 9.4],
+    reach: 2.6, labelY: 2.0,
     events: ['johei', 'insei', 'ran', 'heishi', 'genpei'],
     scene: [
       { text: '舟着きに立つと、遣水の音が、潮騒にかわった。' },
