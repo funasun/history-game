@@ -141,7 +141,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   wake: () => set({ mode: 'dialogue', dialogue: { lines: getPack().WAKE_LINES, i: 0, then: 'outfit' } }),
 
-  toHome: () => set({ mode: 'home', dialogue: null }),
+  toHome: () => { document.title = '時渡り草子'; set({ mode: 'home', dialogue: null }) },
   toTitle: () => set({ mode: 'title', dialogue: null }),
   toGuide: () => set({ mode: 'guide', dialogue: null }),
 

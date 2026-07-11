@@ -7,11 +7,12 @@ import { getPack } from '../game/pack'
 import { World } from './World'
 import { Player, Characters, Flowers, Bed, Landmarks, GuideMote } from './actors'
 import { Life } from './Life'
-import { playerWorld, drive } from '../game/live'
+import { playerWorld, drive, clampDt } from '../game/live'
 
 function Atmosphere() {
   const scene = useThree(s => s.scene)
-  useFrame((_, dt) => {
+  useFrame((_, rawDt) => {
+    const dt = clampDt(rawDt)
     useGame.getState().tick(dt)
     const t = useGame.getState().t
     const col = getPack().skyColor(t)

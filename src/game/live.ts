@@ -10,6 +10,12 @@ export const heldKeys = new Set<string>()
 // on はドラッグ判定が確定してから true になる（素早い単クリックでは立たない）。
 export const drive = { on: false }
 
+// タブが裏に回ると rAF が止まり、戻った最初のフレームに「留守のあいだ全部」の dt が渡る。
+// そのままだと一日が一瞬で暮れてしまうので、1フレームぶんとして扱う時間に上限を置く。
+export function clampDt(dt: number): number {
+  return Math.min(dt, 0.1)
+}
+
 // 開発時のみ、当たり判定の検証用にプレイヤー位置を覗けるようにする（本番ビルドでは消える）
 if (import.meta.env.DEV) (globalThis as Record<string, unknown>).__pw = playerWorld
 

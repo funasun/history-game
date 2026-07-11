@@ -6,7 +6,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGame } from '../game/store'
 import { getPack } from '../game/pack'
-import { playerWorld } from '../game/live'
+import { playerWorld, clampDt } from '../game/live'
 import { toTexture, leafCanvas, ringCanvas } from '../engine/textures'
 
 const noRaycast = () => null
@@ -52,7 +52,8 @@ function FallingLeaves() {
     }),
   )
 
-  useFrame((_, dt) => {
+  useFrame((_, rawDt) => {
+    const dt = clampDt(rawDt)
     const arr = leaves.current
     for (let i = 0; i < N; i++) {
       const l = arr[i]
@@ -101,7 +102,8 @@ function Footfalls() {
   const acc = useRef(0)
   const cursor = useRef(0)
 
-  useFrame((_, dt) => {
+  useFrame((_, rawDt) => {
+    const dt = clampDt(rawDt)
     const groundY = getPack().groundY
     const dx = playerWorld.x - last.current.x
     const dz = playerWorld.z - last.current.y
@@ -164,7 +166,8 @@ function Dragonfly() {
   const pos = useRef(new THREE.Vector3(playerWorld.x + 3, 1.4, playerWorld.z + 2))
   const wander = useRef(0)
 
-  useFrame((state, dt) => {
+  useFrame((state, rawDt) => {
+    const dt = clampDt(rawDt)
     const t = state.clock.elapsedTime
     const p = pos.current
     const dpx = p.x - playerWorld.x

@@ -5,7 +5,7 @@ import { useGame, pendingFireCircle, findNearby } from '../game/store'
 import { getPack } from '../game/pack'
 import { P } from '../heian/palette'
 import { toTexture, flowerCanvas, haloCanvas, faceCanvas, labelCanvas, labelHeightPx, LABEL_W, type FigureKind } from '../engine/textures'
-import { playerWorld, keyDir } from '../game/live'
+import { playerWorld, keyDir, clampDt } from '../game/live'
 import { resolveMove } from '../game/collide'
 
 const noRaycast = () => null
@@ -150,7 +150,8 @@ export function Player() {
   const stuck = useRef(0)
   const nearAcc = useRef(0)
 
-  useFrame((_, dt) => {
+  useFrame((_, rawDt) => {
+    const dt = clampDt(rawDt)
     const s = useGame.getState()
     const { groundY } = getPack()
     const p = pos.current

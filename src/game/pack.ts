@@ -125,7 +125,11 @@ let activeId = 'heian'
 export function getPack(): Pack { return PACKS[activeId] }
 export function activeEraId(): string { return activeId }
 export function setActiveEra(id: string) {
-  if (PACKS[id]) { activeId = id; setSaveEra(id) }
+  if (PACKS[id]) {
+    activeId = id
+    setSaveEra(id)
+    document.title = `時渡り草子 — ${PACKS[id].volume}`  // ブラウザの題も篇に追従
+  }
 }
 
 // 開発時のみ：篇の切替と参照を検証用に露出（本番ビルドでは消える）
