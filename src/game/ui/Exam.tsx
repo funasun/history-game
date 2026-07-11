@@ -51,14 +51,19 @@ export function ExamSheet({ exam, title, filled, animate, showHints, name }: {
         {exam.map((q, i) => {
           const ok = filled.has(q.id)
           const delay = ok ? k++ : 0
+          const ev = pack.TIMELINE.find(t => t.id === q.eventId)
           return (
             <div key={q.id} className="ex-q">
-              <div className="ex-qtext"><span className="ex-no">問{i + 1}</span>{q.q}</div>
-              <div className={`ex-a${ok ? ' inked' : ''}`}>
-                {ok
-                  ? <span className="ex-ink" style={animate ? { animationDelay: `${0.7 + delay * 0.55}s` } : undefined}>{q.a}</span>
-                  : (showHints ? <span className="ex-hint">{examHint(q, pack)}</span> : null)}
+              <div className="ex-qrow">
+                <div className="ex-qtext"><span className="ex-no">問{i + 1}</span>{q.q}</div>
+                <div className={`ex-a${ok ? ' inked' : ''}`}>
+                  {ok
+                    ? <span className="ex-ink" style={animate ? { animationDelay: `${0.7 + delay * 0.55}s` } : undefined}>{q.a}</span>
+                    : (showHints ? <span className="ex-hint">{examHint(q, pack)}</span> : null)}
+                </div>
               </div>
+              {/* 埋まった問いには、年・出来事名を添えて年表へつなぐ（草子のタブ側のみ） */}
+              {ok && showHints && ev && <div className="ex-src">{ev.year}年『{ev.title}』</div>}
             </div>
           )
         })}

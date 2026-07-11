@@ -367,24 +367,8 @@
   padding-top: 8px; border-top: 1px dashed rgba(42,36,30,0.3);
 }
 
-/* 令和の場面（プロローグ／エピローグ） */
-.story-screen {
-  position: absolute; inset: 0;
-  background: #17181c;
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 34px; cursor: pointer;
-  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
-}
-.story-line {
-  color: #e8e6df; font-size: 20px; letter-spacing: 0.12em; line-height: 2;
-  max-width: 78vw; text-align: center;
-  animation: storyfade 0.7s ease-out;
-}
+/* 令和の場面の共通アニメ（教室紙芝居 Classroom.tsx が使う） */
 @keyframes storyfade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-.story-hint {
-  color: #8b877c; font-size: 13px; letter-spacing: 0.3em;
-  animation: blink 1.8s infinite;
-}
 
 /* 縦画面ガード：横向き推奨 → 5秒でCSS強制横 */
 .rotate-guard {
@@ -647,10 +631,15 @@ html.force-landscape #root {
 }
 .ex-qs { display: flex; flex-direction: column; }
 .ex-q {
-  display: flex; align-items: baseline; gap: 12px;
   padding: 7px 0; border-bottom: 1px dotted rgba(35,37,43,0.28);
 }
 .ex-q:last-child { border-bottom: none; }
+.ex-qrow { display: flex; align-items: baseline; gap: 12px; }
+/* こたえの出どころ：年・出来事名で年表へつなぐ */
+.ex-src {
+  text-align: right; font-size: 10px; letter-spacing: 0.06em;
+  color: #8a8578; margin-top: 2px;
+}
 .ex-qtext { flex: 1 1 auto; font-size: 12px; line-height: 1.75; min-width: 0; }
 .ex-no {
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
