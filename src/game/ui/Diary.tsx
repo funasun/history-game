@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useGame } from '../store'
-import { getPack } from '../pack'
+import { getPack, activeEraId } from '../pack'
 import type { TLEvent } from '../pack'
+import { ERAS } from '../eras'
+import { ExamSheet, filledSet } from './Exam'
 import { washiDataURL, flowerDataURL, letterDataURL } from '../../engine/textures'
 
 const washi = () => ({ backgroundImage: `url(${washiDataURL()})` })
@@ -145,7 +147,7 @@ export function DiaryBook() {
   const setBookOpen = useGame(s => s.setBookOpen)
   const pack = getPack()
   const TIMELINE = pack.TIMELINE
-  const [tab, setTab] = useState<'nenpyo' | 'nikki' | 'zufu' | 'shiori'>('nenpyo')
+  const [tab, setTab] = useState<'shiken' | 'nenpyo' | 'nikki' | 'zufu' | 'shiori'>('shiken')
   const [openFact, setOpenFact] = useState<string | null>(null)
   const [openEvent, setOpenEvent] = useState<string | null>(null)
   const learned = [...new Set(diary.flatMap(e => e.factIds))]
@@ -154,23 +156,43 @@ export function DiaryBook() {
   const witnessed = (ev: TLEvent) =>
     learnedEvents.includes(ev.id) || (!!ev.factId && factSet.has(ev.factId))
   const seenCount = TIMELINE.filter(witnessed).length
+  // 持ちこんだ試験：見た出来事のこたえは、もう書ける
+  const filled = filledSet(pack.exam, learnedEvents, diary)
 
   return (
     <div className="panel-wrap" onClick={() => setBookOpen(false)}>
       <div className="panel book" style={washi()} onClick={e => e.stopPropagation()}>
         <button className="close" onClick={() => setBookOpen(false)}>✕</button>
         <div className="tabs">
+          <button className={tab === 'shiken' ? 'on' : ''} onClick={() => setTab('shiken')}>試験</button>
           <button className={tab === 'nenpyo' ? 'on' : ''} onClick={() => setTab('nenpyo')}>年表</button>
           {pack.hasFlowers && <button className={tab === 'zufu' ? 'on' : ''} onClick={() => setTab('zufu')}>草花の図譜</button>}
           <button className={tab === 'nikki' ? 'on' : ''} onClick={() => setTab('nikki')}>これまでの頁</button>
           <button className={tab === 'shiori' ? 'on' : ''} onClick={() => setTab('shiori')}>栞のたまり</button>
         </div>
 
+        {tab === 'shiken' && (
+          <div className="exam-tab">
+            <div className="exam-tab-head">
+              <span className="exam-tab-title">持ちこんだ試験の写し</span>
+              <span className="nenpyo-count">こたえ　{filled.size} / {pack.exam.length}</span>
+            </div>
+            <ExamSheet exam={pack.exam} title={pack.examTitle} filled={filled} showHints name={filled.size > 0} />
+            <div className="nenpyo-foot">夢のなかで見たことの、こたえは埋まってゆく。</div>
+          </div>
+        )}
+
         {tab === 'nenpyo' && (
           <div className="nenpyo">
             <div className="nenpyo-head">
               <span className="nenpyo-title">{pack.nenpyoTitle}</span>
               <span className="nenpyo-count">見た出来事　{seenCount} / {TIMELINE.length}</span>
+            </div>
+            {/* 時代のながれ：日本史のどこにいるか（参考資料の頭） */}
+            <div className="era-strip">
+              {ERAS.map(e => (
+                <span key={e.id} className={`era-chip${e.id === activeEraId() ? ' now' : ''}`}>{e.name}</span>
+              ))}
             </div>
             <div className="nenpyo-list">
               {TIMELINE.map(ev => {
@@ -179,19 +201,19 @@ export function DiaryBook() {
                 return (
                   <div
                     key={ev.id}
-                    className={`tl-item${w ? '' : ' locked'}${open ? ' open' : ''}`}
-                    onClick={() => w && setOpenEvent(open ? null : ev.id)}
+                    className={`tl-item${w ? '' : ' unseen'}${open ? ' open' : ''}`}
+                    onClick={() => setOpenEvent(open ? null : ev.id)}
                   >
                     <div className="tl-row">
                       <span className="tl-year">{ev.year}</span>
                       <span className="tl-body">
-                        <span className="tl-title">{w ? ev.title : 'まだ見ぬ出来事'}</span>
-                        {w && <span className="tl-meta">{ev.wa}・{ev.figure}</span>}
+                        <span className="tl-title">{ev.title}</span>
+                        <span className="tl-meta">{ev.wa}・{ev.figure}</span>
                       </span>
-                      <span className="tl-mark">{w ? '●' : '○'}</span>
+                      {w && <span className="tl-seal">見た</span>}
                     </div>
-                    {w && !open && <div className="tl-line">{ev.line}</div>}
-                    {w && open && <div className="tl-deep">{ev.deep}</div>}
+                    {!open && <div className="tl-line">{ev.line}</div>}
+                    {open && <div className="tl-deep">{ev.deep}</div>}
                     {!w && <div className="tl-line tl-hint">{lockedHint(ev)}</div>}
                   </div>
                 )

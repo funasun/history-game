@@ -318,22 +318,29 @@
   background: rgba(255,252,240,0.5);
 }
 .tl-item:hover { border-color: var(--shu); }
-.tl-item.locked {
-  cursor: default; opacity: 0.5;
+/* まだ見ぬ出来事も参考資料として全文よめる（薄めるだけ・隠さない） */
+.tl-item.unseen {
   border-left-color: rgba(42,36,30,0.3);
-  background: rgba(255,252,240,0.2);
+  background: rgba(255,252,240,0.32);
 }
 .tl-row { display: flex; align-items: baseline; gap: 12px; }
 .tl-year {
   flex: none; width: 3em; text-align: right;
   font-size: 15px; letter-spacing: 0.03em; color: var(--shu); font-weight: 600;
 }
-.tl-item.locked .tl-year { color: var(--sumi); }
+.tl-item.unseen .tl-year { color: var(--sumi); opacity: 0.75; }
 .tl-body { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .tl-title { font-size: 15px; letter-spacing: 0.06em; }
 .tl-meta { font-size: 11.5px; letter-spacing: 0.08em; opacity: 0.65; }
-.tl-mark { flex: none; font-size: 10px; color: var(--shu); opacity: 0.8; }
-.tl-item.locked .tl-mark { color: var(--sumi); opacity: 0.4; }
+/* 見た出来事に捺される朱印（体験の証。収集の緊張は答案側にある） */
+.tl-seal {
+  flex: none; align-self: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  border: 1.6px solid rgba(199,62,58,0.7); color: var(--shu);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10.5px; letter-spacing: 0.06em;
+  transform: rotate(-8deg); opacity: 0.85;
+}
 .tl-line { font-size: 13.5px; line-height: 1.7; margin-top: 6px; opacity: 0.85; }
 .tl-deep {
   font-size: 13.5px; line-height: 1.95; margin-top: 8px;
@@ -597,6 +604,250 @@ html.force-landscape #root {
 
 /* 年表のまだ見ぬ頁：ひらき方をそっと示す手引き */
 .tl-hint { color: #7a5230; letter-spacing: 0.08em; }
+
+/* 時代のながれ（縄文〜明治の帯）：日本史のどこにいるかを示す参考資料の頭 */
+.era-strip {
+  display: flex; flex-wrap: wrap; gap: 4px; row-gap: 5px;
+  margin: 0 0 12px; padding-bottom: 10px;
+  border-bottom: 1px dashed rgba(42,36,30,0.3);
+}
+.era-chip {
+  font-size: 10.5px; letter-spacing: 0.1em; padding: 2px 7px;
+  border: 1px solid rgba(42,36,30,0.3); border-radius: 2px;
+  color: var(--sumi); opacity: 0.55; background: rgba(255,252,240,0.4);
+}
+.era-chip.now {
+  opacity: 1; color: var(--gofun); background: var(--shu); border-color: var(--shu);
+}
+
+/* ---- 持ちこんだ試験の答案用紙（現代のプリント：白い紙・ゴシック） ----
+   和紙・明朝の世界に挟まる異物であることが、時渡りの視覚言語 */
+.exam-sheet {
+  background: #fdfdf8;
+  color: #23252b;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+  border: 1px solid rgba(35,37,43,0.18);
+  box-shadow: 0 4px 18px rgba(15,12,10,0.28);
+  padding: 16px 20px 18px;
+  transform: rotate(-0.6deg);
+}
+.ex-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  border-bottom: 2.5px double #23252b; padding-bottom: 7px;
+}
+.ex-subject { font-size: 11px; letter-spacing: 0.2em; }
+.ex-title { font-size: 14.5px; font-weight: 600; letter-spacing: 0.14em; }
+.ex-name {
+  display: flex; justify-content: flex-end; align-items: baseline; gap: 10px;
+  font-size: 10.5px; letter-spacing: 0.16em; margin: 7px 0 4px; opacity: 0.85;
+}
+.ex-name-slot {
+  display: inline-block; min-width: 7em; text-align: center;
+  border-bottom: 1px solid #23252b; padding: 0 6px 1px;
+}
+.ex-qs { display: flex; flex-direction: column; }
+.ex-q {
+  display: flex; align-items: baseline; gap: 12px;
+  padding: 7px 0; border-bottom: 1px dotted rgba(35,37,43,0.28);
+}
+.ex-q:last-child { border-bottom: none; }
+.ex-qtext { flex: 1 1 auto; font-size: 12px; line-height: 1.75; min-width: 0; }
+.ex-no {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em;
+  border: 1px solid #23252b; border-radius: 2px;
+  padding: 0 4px; margin-right: 8px; white-space: nowrap;
+}
+.ex-a {
+  flex: none; width: 8.5em; min-height: 1.5em; align-self: center;
+  border-bottom: 1px solid rgba(35,37,43,0.55);
+  text-align: center;
+}
+/* こたえの走り書き：夢で会ったから、書ける（青黒いペン・明朝で肉筆感） */
+.ex-ink {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  font-size: 14.5px; color: #223361; letter-spacing: 0.04em;
+  display: inline-block; transform: rotate(-1.6deg) translateY(1px);
+}
+.ex-a.inked { border-bottom-color: rgba(35,37,43,0.3); }
+.exam-sheet .ex-ink { animation: inkin 0.5s ease-out backwards; }
+@keyframes inkin {
+  from { opacity: 0; clip-path: inset(0 100% 0 0); }
+  60% { opacity: 1; }
+  to { opacity: 1; clip-path: inset(0 -8% 0 0); }
+}
+/* 未回答：ゆかりの名所への誘い（責めない・墨の小声） */
+.ex-hint {
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  font-size: 10.5px; color: #8a7a5c; letter-spacing: 0.06em;
+}
+
+/* 草子の「試験」タブ：帳面に挟み込まれた現代のプリント */
+.exam-tab { display: flex; flex-direction: column; }
+.exam-tab-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  margin-bottom: 12px; padding-bottom: 8px;
+  border-bottom: 1px solid rgba(42,36,30,0.25);
+}
+.exam-tab-title { font-size: 15px; letter-spacing: 0.28em; color: var(--shu); }
+.exam-tab .exam-sheet { margin: 2px 6px 4px; }
+.exam-tab .nenpyo-foot { margin-top: 14px; }
+
+/* ---- 現実（令和の教室）の紙芝居 ---- */
+.cls-screen {
+  position: absolute; inset: 0; overflow: hidden;
+  background: #17181c; cursor: pointer;
+  font-family: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+}
+/* 幕一：掲示（黒に白抜き） */
+.cls-board {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+  animation: fadein 1.2s ease-out;
+}
+.cls-board-date { color: #a7a49b; font-size: 14px; letter-spacing: 0.3em; }
+.cls-board-subj { color: #e8e6df; font-size: 24px; letter-spacing: 0.42em; }
+/* 教室（夕方より暗い蛍光灯の白、机の面） */
+.cls-room {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, #23252b 0%, #2b2d33 46%, #4a4038 47%, #3a322b 100%);
+  transition: filter 0.9s ease;
+}
+.cls-desk {
+  position: absolute; left: 50%; top: 54%; transform: translate(-50%, -50%);
+  width: min(430px, 76vw);
+}
+.cls-desk .exam-sheet {
+  max-height: 64vh; overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, #000 78%, transparent 99%);
+  mask-image: linear-gradient(180deg, #000 78%, transparent 99%);
+}
+/* 壁時計（秒針は steps で刻む） */
+.cls-clock { position: absolute; top: 14px; right: 118px; }
+.cls-clock-face {
+  position: relative; width: 64px; height: 64px; border-radius: 50%;
+  background: #e8e6df; border: 3px solid #3a3c42;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.4);
+}
+.cls-clock-dot {
+  position: absolute; left: 50%; top: 50%; width: 2px; height: 5px; margin: -2.5px 0 0 -1px;
+  background: #55575c;
+}
+.cls-hand-h, .cls-hand-m, .cls-hand-s {
+  position: absolute; left: 50%; bottom: 50%; transform-origin: 50% 100%;
+}
+.cls-hand-h { width: 3px; height: 14px; margin-left: -1.5px; background: #2a2c30; transform: rotate(320deg); }
+.cls-hand-m { width: 2px; height: 21px; margin-left: -1px; background: #2a2c30; transform: rotate(150deg); }
+.cls-hand-s {
+  width: 1px; height: 24px; margin-left: -0.5px; background: #c73e3a;
+  animation: clockspin 60s steps(60) infinite;
+}
+@keyframes clockspin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+/* 独白（心の声）：下辺に一行ずつ */
+.cls-line {
+  position: absolute; left: 50%; bottom: 9%; transform: translateX(-50%);
+  color: #e8e6df; font-size: 18px; letter-spacing: 0.12em; line-height: 1.9;
+  width: max-content; max-width: 86vw; text-align: center;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.75);
+  animation: storyfade 0.7s ease-out;
+}
+.cls-tap-hint {
+  position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%);
+  color: #8b877c; font-size: 13px; letter-spacing: 0.3em;
+  animation: blink 1.8s infinite;
+}
+/* まぶた：上下から黒がまばたき。行が進むごとに --blink がのびる */
+.cls-lids { position: absolute; inset: 0; pointer-events: none; }
+.cls-lid { position: absolute; left: 0; right: 0; height: 51%; background: #060608; }
+.cls-lid.top { top: 0; transform: translateY(-101%); animation: lidtop var(--blink, 0.5s) ease-in-out; }
+.cls-lid.bottom { bottom: 0; transform: translateY(101%); animation: lidbottom var(--blink, 0.5s) ease-in-out; }
+@keyframes lidtop { 0% { transform: translateY(-101%); } 42% { transform: translateY(0); } 62% { transform: translateY(0); } 100% { transform: translateY(-101%); } }
+@keyframes lidbottom { 0% { transform: translateY(101%); } 42% { transform: translateY(0); } 62% { transform: translateY(0); } 100% { transform: translateY(101%); } }
+/* 目覚め：まぶたが一度だけひらく */
+.cls-lids.opening .cls-lid.top { animation: lidopen-t 1.9s ease-in-out forwards; }
+.cls-lids.opening .cls-lid.bottom { animation: lidopen-b 1.9s ease-in-out forwards; }
+@keyframes lidopen-t { 0% { transform: translateY(0); } 18% { transform: translateY(-24%); } 34% { transform: translateY(-6%); } 100% { transform: translateY(-101%); } }
+@keyframes lidopen-b { 0% { transform: translateY(0); } 18% { transform: translateY(24%); } 34% { transform: translateY(6%); } 100% { transform: translateY(101%); } }
+/* 寝落ち：全黒 */
+.cls-black { position: absolute; inset: 0; background: #060608; animation: fadein 0.7s ease-out; }
+/* 時渡り：金泥の光が立ちのぼり、年号が宙へ散る */
+.cls-slip { position: absolute; inset: 0; background: #0b0910; overflow: hidden; }
+.slip-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 90% 62% at 50% 108%, rgba(200,162,75,0.5), rgba(160,110,40,0.16) 55%, transparent 75%);
+  animation: glowrise 4.6s ease-out forwards;
+}
+@keyframes glowrise { from { opacity: 0; transform: translateY(24%); } to { opacity: 1; transform: translateY(0); } }
+.slip-year {
+  position: absolute; bottom: -8%;
+  color: rgba(222,186,105,0.85); font-size: 21px; letter-spacing: 0.1em;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  text-shadow: 0 0 14px rgba(200,162,75,0.55);
+  animation: yearfloat 4s ease-in both;
+}
+@keyframes yearfloat {
+  0% { transform: translateY(0); opacity: 0; }
+  18% { opacity: 0.95; }
+  100% { transform: translateY(-78vh) rotate(6deg); opacity: 0; }
+}
+/* 縦書きの題字：ここから書体が明朝に変わる（夢への入り口） */
+.slip-title {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  writing-mode: vertical-rl;
+  font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+  display: flex; align-items: center; gap: 10px;
+  animation: storyfade 1.6s ease-out 1.2s backwards;
+}
+.slip-title-sub { color: rgba(244,238,218,0.72); font-size: 16px; letter-spacing: 0.3em; }
+.slip-title-era {
+  color: var(--gofun); font-size: 44px; letter-spacing: 0.34em;
+  text-shadow: 0 0 30px rgba(200,162,75,0.6);
+}
+/* とばす（常設） */
+.cls-skip {
+  position: absolute; top: 12px; right: 14px; z-index: 5;
+  font-family: inherit; font-size: 12px; letter-spacing: 0.26em;
+  color: #8b877c; background: rgba(23,24,28,0.5);
+  border: 1px solid rgba(139,135,124,0.5); border-radius: 3px;
+  padding: 6px 14px; cursor: pointer;
+}
+.cls-skip:hover { color: #e8e6df; border-color: #8b877c; }
+
+/* ---- 目覚め（終幕）---- */
+.cls-room.wake { background: linear-gradient(180deg, #b9c4cd 0%, #cfd6da 44%, #8a7a64 45%, #6f6252 100%); }
+.cls-room.wake .cls-clock-face { border-color: #55575c; }
+.wake-gold {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse 80% 70% at 50% 40%, rgba(222,186,105,0.8), rgba(200,162,75,0.3) 55%, transparent 78%);
+  animation: wakegold 2.6s ease-out forwards;
+}
+@keyframes wakegold { from { opacity: 1; } to { opacity: 0; } }
+.wake-blank-note {
+  position: absolute; left: 50%; bottom: 4.5%; transform: translateX(-50%);
+  color: #f0ede4; font-size: 12.5px; letter-spacing: 0.14em; white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+  animation: storyfade 1s ease-out 1.4s backwards;
+}
+.wake-card {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px;
+  animation: fadein 0.9s ease-out;
+}
+.wake-card-text { color: #e8e6df; font-size: 21px; letter-spacing: 0.24em; text-align: center; max-width: 86vw; }
+.wake-card-hint { color: #8b877c; font-size: 13px; letter-spacing: 0.3em; animation: blink 1.8s infinite; }
+
+/* 教室の紙芝居：低い横画面では紙と時計を詰める */
+@media (max-height: 460px) {
+  .cls-desk { width: min(380px, 70vw); top: 56%; }
+  .cls-desk .exam-sheet { max-height: 58vh; padding: 10px 16px 12px; }
+  .cls-desk .ex-q { padding: 5px 0; }
+  .cls-clock { top: 10px; right: 104px; }
+  .cls-clock-face { width: 48px; height: 48px; }
+  .cls-hand-m { height: 16px; }
+  .cls-hand-s { height: 18px; }
+  .cls-line { font-size: 15px; bottom: 7%; }
+  .slip-title-era { font-size: 34px; }
+  .cls-board-subj { font-size: 19px; }
+}
 
 /* 横画面スマホは背が低い（320〜430px）。縦組みの外題が収まるよう詰める */
 @media (max-height: 460px) {

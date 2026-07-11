@@ -386,6 +386,10 @@ function resolve(id: string, set: Set, get: Get) {
       const rest = evs.length > 2 ? ` ほか${evs.length - 2}件` : ''
       lines.push({ speaker: '年表', text: `頁が加わった——${listed}${rest}。絵日記の年表で、くわしく読める。` })
     }
+    // 出題と重なった時だけ、令和の受験生の声がひとこと漏れる（押し付けの解説にしない）
+    if (evs.some(e => pack.exam.some(q => q.eventId === e.id))) {
+      lines.push({ speaker: 'わたし', text: '——あ、これ、テストに出てたやつだ。' })
+    }
     set({
       learnedEvents,
       pageToast: evs.length ? evs[0].title : null,

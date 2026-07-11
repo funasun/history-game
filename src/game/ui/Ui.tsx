@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { useGame } from '../store'
 import { ERAS } from '../eras'
 import { getPack } from '../pack'
@@ -166,39 +166,9 @@ export function Hud() {
   )
 }
 
-// 令和の場面（プロローグ／エピローグ）：現代の書体で、一文ずつ
-function StorySlides({ slides, onDone, lastHint }: { slides: string[]; onDone: () => void; lastHint?: string }) {
-  const [i, setI] = useState(0)
-  const isLast = i + 1 >= slides.length
-  const next = () => { if (isLast) onDone(); else setI(i + 1) }
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => {
-      if (e.key === ' ' || e.key === 'Enter') {
-        e.preventDefault()
-        if (!e.repeat) next()
-      }
-    }
-    window.addEventListener('keydown', h)
-    return () => window.removeEventListener('keydown', h)
-  })
-  return (
-    <div className="story-screen" onClick={next}>
-      <div className="story-line" key={i}>{slides[i]}</div>
-      <div className="story-hint">{isLast && lastHint ? lastHint : '▼'}</div>
-    </div>
-  )
-}
-
-export function Prologue() {
-  const toGuide = useGame(s => s.toGuide)
-  return <StorySlides slides={getPack().prologue} onDone={toGuide} />
-}
-
-export function Epilogue() {
-  const toTitle = useGame(s => s.toTitle)
-  const pack = getPack()
-  return <StorySlides slides={pack.epilogue} onDone={toTitle} lastHint={pack.epilogueHint} />
-}
+// 令和の場面（プロローグ／エピローグ）＝教室の紙芝居（Classroom.tsx）
+// 冒頭：試験→寝落ち→時渡り。終幕：目覚め→答案にこたえが埋まる。
+export { ClassroomIntro as Prologue, WakeUp as Epilogue } from './Classroom'
 
 // 端末で操作のいいまわしを変える（PCではキーボード／ドラッグも案内）
 const isTouchDevice = () =>
@@ -251,7 +221,7 @@ export function Home() {
       <div className="kasumi" />
       <div className="home-head">
         <h1 className="home-title">時渡り草子</h1>
-        <div className="home-sub">日本史を 渡りあるく</div>
+        <div className="home-sub">テストのつづきは、夢のなかで</div>
       </div>
       <div className="shelf" ref={shelfRef}>
         {ERAS.map(e => e.available ? (
@@ -262,13 +232,13 @@ export function Home() {
           </button>
         ) : (
           <div key={e.id} className="spine locked">
-            <span className="top">近日</span>
+            <span className="top">次の試験</span>
             <span className="ename">{e.name}</span>
             <span className="eyear">{e.year}</span>
           </div>
         ))}
       </div>
-      <div className="home-foot">篇は、これからも増えてゆく</div>
+      <div className="home-foot">試験範囲は、これからも増えてゆく</div>
     </div>
   )
 }
@@ -290,7 +260,7 @@ export function Title() {
         <div className="tagline">{pack.tagline}</div>
       </div>
       <div className="buttons">
-        {saved && <button onClick={() => start(false)}>つづきから</button>}
+        {saved && <button onClick={() => start(false)}>夢のつづきから</button>}
         <button onClick={() => start(true)}>はじめから</button>
       </div>
     </div>

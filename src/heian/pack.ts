@@ -11,6 +11,7 @@ import { getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, BED_EARLY } from './dialogu
 import { skyColor, tintColor } from './palette'
 import { HeianWorld, HeianLandmarkMesh } from './world'
 import { buildSolids } from '../game/solids'
+import { EXAM, EXAM_TITLE } from './exam'
 
 // 木・柱・名所に当たりを付ける。塔は土台ぶんだけ円で塞ぐ。
 // 御堂は角ばった土台なので円ではなく layout.blocked() の矩形で実寸に塞ぐ（hall:0）。
@@ -63,31 +64,33 @@ export const heianPack: Pack = {
   hasFlowers: true, hasLetter: true,
   diaryExtras, onSleepZufu,
 
+  examTitle: EXAM_TITLE,
+  exam: EXAM,
+
   volume: '平安篇',
   tagline: 'みやこの秋、七日の日記',
   prologue: [
-    '令和八年、秋。おばあちゃんの家の、蔵のなか。',
-    'ほこりをかぶった箱に、ふるい絵の本があった。',
-    '表紙には、かすれた字で——『時渡り草子』。',
-    '奥書に、ひとこと。「ひらけば、むかしの日々を生きられる」。',
-    '頁をめくったとたん、金いろの光があふれて、',
-    'わたしは、たおれるように、ねむってしまった。',
+    '……だめだ。ぜんぜん、わかんない。',
+    '「794年、都をうつした天皇」——名前、覚えたはずなのに。',
+    '教科書のなかの人なんて、会ったこともないもん。',
+    '秒針の音だけが、やけに、おおきい。',
+    '……まぶたが、おもい。',
   ],
   epilogue: [
-    '——目をさますと、蔵のなかだった。',
-    '手のなかに、あの草子。',
-    '頁は、七日ぶんの絵日記でいっぱいになっていた。',
-    'さいごの頁に、もみぢの押し葉が、ひとひら。',
-    '「またね、萩の君。」',
-    '千年まえの秋は、いまも、ここにある。',
+    '——チャイム？',
+    'はっと顔をあげると、教室だった。',
+    '夢……にしては、たしかな手ざわりだった。',
+    '袖にまだ、あの庭の、秋の匂いがのこってる。',
+    'ペンをにぎる。——あれ。書ける。',
+    '会ったことのある人の名前は、わすれない。',
   ],
-  epilogueHint: 'おわり',
+  epilogueHint: 'つぎの頁——大問二『鎌倉時代』',
   guideRows: [
     ['あるく', '行きたい方を、タップ'],
     ['ふれる', '光る名所や、草花・人に'],
     ['えらぶ', 'ことばは、心のままに'],
   ],
-  guideNote: '光の柱がのぼる名所にふれると、時代の頁が年表にひらく。日が暮れたら、寝所で宵の絵日記を。',
+  guideNote: '光の柱がのぼる名所にふれると時代の頁がひらき、答案のこたえが埋まってゆく。日が暮れたら、寝所で宵の絵日記を。',
   outfits: [
     { name: '山吹', color: '#e0a63e', under: '#c98a2e' },
     { name: '朽葉', color: '#a8683a', under: '#8a5a30' },

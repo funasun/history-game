@@ -24,6 +24,15 @@ export interface Landmark {
 
 export interface Fact { id: string; tag: string; short: string; deep: string }
 
+// 持ちこんだ試験の一問。eventId の出来事を「見た」ら、答案のこたえが埋まる。
+// （正誤判定や点数は無い。埋まる／まだ、だけ——北極星「ゲージを見せない」）
+export interface ExamQ {
+  id: string
+  eventId: string   // この出来事を見れば解ける（learnedEvents か、その factId の栞）
+  q: string         // 設問（中高の定期試験ふう・一文）
+  a: string         // 答案に書きこまれるこたえ
+}
+
 export interface PackCharacter {
   id: string; name: string; figure: PackFigure; robes: string[]
   day: [number, number]; evening: [number, number]; scale: number
@@ -84,11 +93,14 @@ export interface Pack {
   hasLetter: boolean
   diaryExtras?: (ctx: DiaryCtx) => DiaryExtra
   onSleepZufu?: (day: number, zufu: string[]) => string[]
+  // 持ちこんだ試験（この篇の大問）。冒頭アニメ・目覚めの答案・草子の試験タブで使う
+  examTitle: string   // 例：大問一　平安時代
+  exam: ExamQ[]
   // UI テキスト
   volume: string
   tagline: string
-  prologue: string[]
-  epilogue: string[]
+  prologue: string[]  // 冒頭：試験中の独白（一行ずつ）
+  epilogue: string[]  // 終幕：目覚めの独白（一行ずつ）
   epilogueHint?: string
   guideRows: [string, string][]
   guideNote: string
