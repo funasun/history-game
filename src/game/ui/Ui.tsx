@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useGame } from '../store'
 import { ERAS } from '../eras'
 import { getPack } from '../pack'
+import { rotateCam } from '../live'
 import { washiDataURL, flowerDataURL, letterDataURL } from '../../engine/textures'
 import { hasSave } from '../../engine/save'
 
@@ -45,6 +46,7 @@ export function OutfitChoice() {
     <div className="panel-wrap">
       <div className="panel" style={washi()}>
         <div className="title">{pack.outfitTitle}</div>
+        {pack.outfitNote && <div className="panel-note">{pack.outfitNote}</div>}
         <div className="outfits">
           {pack.outfits.map(o => (
             <button key={o.name} className="outfit" onClick={() => choose(o.color)}>
@@ -56,6 +58,29 @@ export function OutfitChoice() {
       </div>
     </div>
   )
+}
+
+// 初回だけの、ひとことヒント帯（上部・数秒で消える。読ませない＝一文だけ）
+export function HintRibbon() {
+  const hint = useGame(s => s.hint)
+  const dismiss = useGame(s => s.dismissHint)
+  useEffect(() => {
+    if (!hint) return
+    const id = setTimeout(dismiss, 6500)
+    return () => clearTimeout(id)
+  }, [hint, dismiss])
+  if (!hint) return null
+  return (
+    <div className="hint-ribbon" key={hint.id} style={washi()} onClick={dismiss}>
+      {hint.text}
+    </div>
+  )
+}
+
+// 場面替えの暗転（ふすまを閉じるような、短い墨色）
+export function Fade() {
+  const fade = useGame(s => s.fade)
+  return <div className={`scene-fade${fade ? ' on' : ''}`} />
 }
 
 export function LetterView() {
@@ -162,6 +187,10 @@ export function Hud() {
         </svg>
         <div className="date">{pack.dateLabel(day)}</div>
       </div>
+      <div className="hud-cam">
+        <button style={washi()} onClick={() => rotateCam(1)} aria-label="左へ見まわす">⟲</button>
+        <button style={washi()} onClick={() => rotateCam(-1)} aria-label="右へ見まわす">⟳</button>
+      </div>
     </>
   )
 }
@@ -199,8 +228,8 @@ export function Guide() {
       <div className="guide-note">{pack.guideNote}</div>
       <div className="guide-controls">
         {touch
-          ? 'ゆびでタップ、または画面をなぞって歩けます。'
-          : '矢印キー・WASD、または画面をドラッグで歩けます。触れるは スペース／Enter。'}
+          ? 'ゆびでタップ、または画面をなぞって歩けます。⟲⟳で見まわせます。'
+          : '矢印キー・WASD、または画面をドラッグで歩けます。触れるは スペース／Enter。q／e か ⟲⟳ で見まわし、ホイールで寄り引き。'}
       </div>
       <button className="guide-start" onClick={wake}>この世に入る</button>
     </div>

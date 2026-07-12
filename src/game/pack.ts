@@ -24,6 +24,37 @@ export interface Landmark {
 
 export interface Fact { id: string; tag: string; short: string; deep: string }
 
+// 場面（エリア）間の出入口。ふれると to のエリアへ渡り、spawn に立つ。
+export interface Gate {
+  id: string; label: string
+  pos: [number, number]; reach: number
+  to: string
+  spawn: [number, number]
+}
+
+// 遊べる小さな場（琴・鯉の餌・市の店…）。名所より軽く、頁はひらかない。
+export interface Spot {
+  id: string; label: string; kind: string
+  pos: [number, number]; reach: number
+  lines?: DialogueLine[]
+  factId?: string   // 遊ぶと宵の絵日記に挟まる栞
+}
+
+// ひとつの場面（邸の庭、都大路…）。歩ける範囲・置かれた物・人をまとめて持つ。
+export interface AreaDef {
+  id: string; label: string
+  World: ComponentType
+  blocked: (x: number, z: number) => boolean
+  groundY: (x: number, z: number) => number
+  solids: Circle[]
+  LANDMARKS: Landmark[]
+  CHARACTERS: PackCharacter[]
+  FLOWER_SPOTS: FlowerSpot[]
+  SPOTS: Spot[]
+  gates: Gate[]
+  hasBed: boolean
+}
+
 // 持ちこんだ試験の一問。eventId の出来事を「見た」ら、答案のこたえが埋まる。
 // （正誤判定や点数は無い。埋まる／まだ、だけ——北極星「ゲージを見せない」）
 export interface ExamQ {
@@ -47,6 +78,7 @@ export interface DayEvent {
   facts?: string[]
   talkFacts?: Record<string, string>
   icons?: string[]
+  noTravel?: string   // この日は門から出られない（物忌みなど）。ことわりの一言
 }
 
 export interface OutfitOption { name: string; color: string; under: string }
@@ -75,16 +107,15 @@ export interface Pack {
   LAST_DAY: number
   BED: { x: number; z: number }
   spawn: [number, number]
-  blocked: (x: number, z: number) => boolean
-  groundY: (x: number, z: number) => number
-  solids: Circle[] // 木・柱・名所の当たり円（人は毎フレーム別に組む）
+  // 場面。歩ける範囲・当たり・置かれた物はエリアごと（getArea() 越しに読む）
+  areas: Record<string, AreaDef>
+  homeArea: string
   // 会話
   getDialogue: (charId: string, ctx: { talked: Record<string, number>; zufu: string[]; letterSeen: boolean; day: number; flags: string[] }) => DialogueLine[]
   WAKE_LINES: DialogueLine[]
   OUTFIT_DONE_LINES: DialogueLine[]
   BED_EARLY: DialogueLine[]
   // 3D と色
-  World: ComponentType
   LandmarkMesh: ComponentType<{ kind: string }>
   skyColor: (t: number) => string
   tintColor: (t: number) => string
@@ -106,6 +137,7 @@ export interface Pack {
   guideNote: string
   outfits: OutfitOption[]
   outfitTitle: string
+  outfitNote?: string   // 色目えらびの下に添える、一言のいわれ（チュートリアル）
   dateLabel: (day: number) => string
   nenpyoTitle: string
   nenpyoFoot: string
@@ -127,12 +159,24 @@ export function activeEraId(): string { return activeId }
 export function setActiveEra(id: string) {
   if (PACKS[id]) {
     activeId = id
+    areaId = PACKS[id].homeArea
     setSaveEra(id)
     document.title = `時渡り草子 — ${PACKS[id].volume}`  // ブラウザの題も篇に追従
   }
 }
 
+// いまいる場面。scene / store / collide はこれ越しに歩ける範囲や置かれた物を読む。
+let areaId = PACKS[activeId].homeArea
+export function getArea(): AreaDef {
+  const pack = getPack()
+  return pack.areas[areaId] ?? pack.areas[pack.homeArea]
+}
+export function activeAreaId(): string { return areaId }
+export function setAreaId(id: string) {
+  if (getPack().areas[id]) areaId = id
+}
+
 // 開発時のみ：篇の切替と参照を検証用に露出（本番ビルドでは消える）
 if (import.meta.env.DEV) {
-  (globalThis as Record<string, unknown>).__pack = { getPack, setActiveEra, activeEraId, PACKS }
+  (globalThis as Record<string, unknown>).__pack = { getPack, setActiveEra, activeEraId, PACKS, getArea, setAreaId, activeAreaId }
 }

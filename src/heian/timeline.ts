@@ -112,7 +112,7 @@ export const eventById = (id: string) => TIMELINE.find(e => e.id === id)!
 export interface Landmark {
   id: string
   label: string
-  kind: 'gate' | 'pagoda' | 'hall' | 'boat'
+  kind: 'gate' | 'pagoda' | 'hall' | 'boat' | 'market' | 'rajomon'
   pos: [number, number]        // 建物の中心
   approach: [number, number]   // 前に立つ場所（ここまで歩いて触れる）
   events: string[]             // ひらく出来事
@@ -123,14 +123,14 @@ export interface Landmark {
 
 export const LANDMARKS: Landmark[] = [
   {
-    id: 'mon', label: '朱雀門', kind: 'gate',
-    pos: [3, 17], approach: [3, 15.3],
-    reach: 2.6, labelY: 6.0,
+    id: 'mon', label: '羅城門', kind: 'rajomon',
+    pos: [0, -30], approach: [0, -27.4],
+    reach: 3.2, labelY: 8.4,
     events: ['sento', 'tamuramaro'],
     scene: [
-      { text: '朱雀門に手をふれると、草子の頁がひらいた。' },
+      { text: '都の南のはて。羅城門を見あげると、草子の頁がひらいた。' },
       { text: 'まなうらに、生まれたばかりの都がひろがる。' },
-      { text: '碁盤の目の大路、まっすぐのびる朱雀大路。' },
+      { text: 'この門から北へ、朱雀大路がまっすぐ——碁盤の目の都。' },
       { text: '桓武天皇が、この地に都をうつしたのだ。' },
       { text: '「平安」——やすらけき都、という名。' },
       { text: '帝はまた、坂上田村麻呂を征夷大将軍として蝦夷の地へつかわした。' },
@@ -140,15 +140,29 @@ export const LANDMARKS: Landmark[] = [
   },
   {
     id: 'tou', label: '五重塔', kind: 'pagoda',
-    pos: [22, 2], approach: [18.9, 2],
+    pos: [12, -18], approach: [9.4, -18],
     reach: 3.4, labelY: 9.2,
     events: ['bukkyo'],
     scene: [
-      { text: '塀のむこうの五重塔を見あげると、頁がひらいた。' },
+      { text: '大路のかたわら、東寺の五重塔を見あげると頁がひらいた。' },
       { text: '最澄は比叡の山に、空海は高野の山に。' },
       { text: '唐からもち帰った、新しい仏の教え。' },
       { text: '山にこもり、祈りで人の願いにこたえる。' },
       { text: '平安の人々の心に、その灯がともった。' },
+    ],
+  },
+  {
+    id: 'ichi', label: '東の市', kind: 'market',
+    pos: [12.5, 0], approach: [10.2, 0],
+    reach: 3.0, labelY: 3.6,
+    events: ['kentoshi'],
+    scene: [
+      { text: '市の店さきに、唐物の棚がある。……もう、ほとんど空っぽだ。' },
+      { text: '草子の頁が、ぱらりとひらいた。' },
+      { text: '二百五十年つづいた唐への船を、菅原道真がとめたのだ。' },
+      { text: '「唐はおとろえ、海はあぶない」と。' },
+      { text: '大陸に学ぶ時代がおわり、この国は、この国の文化を育てはじめる。' },
+      { text: 'のちにいう国風文化——その芽が、この市の品にものぞいている。' },
     ],
   },
   {

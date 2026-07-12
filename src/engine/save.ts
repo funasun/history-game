@@ -14,6 +14,7 @@ export interface SaveData {
   letterSeen: boolean
   flags: string[]
   learnedEvents?: string[]   // 見た出来事（名所や栞から）。旧セーブには無い
+  hintSeen?: string[]        // 一度見せたヒント帯。旧セーブには無い
 }
 
 export function loadSave(): SaveData | null {

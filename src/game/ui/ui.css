@@ -220,6 +220,58 @@
   writing-mode: vertical-rl; margin: 6px auto 0;
 }
 
+/* 見まわし（カメラ回転）ボタン */
+.hud-cam {
+  position: absolute; right: 16px; bottom: 18px;
+  display: flex; gap: 8px;
+}
+.hud-cam button {
+  width: 42px; height: 42px; cursor: pointer;
+  font-family: inherit; font-size: 20px; color: var(--sumi);
+  background: var(--gofun); background-size: cover;
+  border: 1.5px solid rgba(42,36,30,0.55); border-radius: 50%;
+  box-shadow: 0 3px 10px rgba(20,15,10,0.35);
+  display: flex; align-items: center; justify-content: center;
+  padding: 0; line-height: 1;
+}
+.hud-cam button:hover { transform: translateY(-2px); }
+
+/* 初回ヒント帯：上部にひとこと、数秒で消える */
+.hint-ribbon {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  max-width: min(560px, 86vw);
+  background: var(--gofun); background-size: cover;
+  border: 1.2px solid rgba(42,36,30,0.5); border-radius: 3px;
+  box-shadow: 0 4px 14px rgba(20,15,10,0.3);
+  padding: 8px 18px;
+  font-size: 14px; letter-spacing: 0.06em; color: var(--sumi);
+  cursor: pointer;
+  animation: ribbonin 6.5s ease forwards;
+}
+@keyframes ribbonin {
+  0% { opacity: 0; transform: translate(-50%, -10px); }
+  6% { opacity: 1; transform: translate(-50%, 0); }
+  88% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -6px); }
+}
+
+/* 場面替えの暗転 */
+.scene-fade {
+  position: absolute; inset: 0;
+  background: #17130e;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.28s ease;
+  z-index: 40;
+}
+.scene-fade.on { opacity: 1; pointer-events: auto; }
+
+/* パネルの下に添える、ひとことのいわれ（色目の説明など） */
+.panel-note {
+  font-size: 13px; line-height: 1.7; letter-spacing: 0.05em;
+  color: rgba(42,36,30,0.78); text-align: center;
+  max-width: 330px; margin: -8px auto 16px;
+}
+
 /* 図譜の実（とれた瞬間） */
 .toast {
   position: absolute; bottom: 20px; right: 20px;

@@ -497,3 +497,53 @@ export function ringCanvas(): HTMLCanvasElement {
   ctx.fillRect(0, 0, 128, 128)
   return c
 }
+
+// 地面の質感（まだら土）。base の上に speck 色の細かい斑を散らす。
+// 繰り返しタイル用（wrapRepeat は使う側で設定）。
+export function groundCanvas(base: string, speck: string, speck2?: string): HTMLCanvasElement {
+  const [c, ctx] = mk(256, 256)
+  ctx.fillStyle = base
+  ctx.fillRect(0, 0, 256, 256)
+  for (let i = 0; i < 1100; i++) {
+    ctx.fillStyle = i % 3 === 0 ? (speck2 ?? speck) : speck
+    ctx.globalAlpha = 0.04 + Math.random() * 0.1
+    const r = 0.6 + Math.random() * 2.4
+    ctx.beginPath()
+    ctx.arc(Math.random() * 256, Math.random() * 256, r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  // うっすらとした筋（風紋・掃き目）
+  ctx.globalAlpha = 0.05
+  ctx.strokeStyle = speck
+  ctx.lineWidth = 1.2
+  for (let i = 0; i < 14; i++) {
+    const y = Math.random() * 256
+    ctx.beginPath()
+    ctx.moveTo(0, y)
+    ctx.bezierCurveTo(80, y + (Math.random() - 0.5) * 22, 176, y + (Math.random() - 0.5) * 22, 256, y)
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+  return c
+}
+
+// 空にうかぶ、やわらかな雲のかたまり（白・透過）
+export function cloudCanvas(): HTMLCanvasElement {
+  const [c, ctx] = mk(256, 128)
+  const blob = (x: number, y: number, r: number, a: number) => {
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r)
+    g.addColorStop(0, `rgba(255,255,255,${a})`)
+    g.addColorStop(0.7, `rgba(255,255,255,${a * 0.5})`)
+    g.addColorStop(1, 'rgba(255,255,255,0)')
+    ctx.fillStyle = g
+    ctx.beginPath()
+    ctx.arc(x, y, r, 0, Math.PI * 2)
+    ctx.fill()
+  }
+  blob(90, 70, 52, 0.75)
+  blob(140, 60, 44, 0.7)
+  blob(180, 74, 36, 0.6)
+  blob(60, 80, 34, 0.55)
+  blob(120, 82, 46, 0.5)
+  return c
+}

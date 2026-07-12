@@ -32,6 +32,28 @@ export const CHARACTERS: CharacterDef[] = [
   },
 ]
 
-export const charById = (id: string) => CHARACTERS.find(c => c.id === id)!
+// 都大路の人びと（市女・門守の翁・大路の童）。日がな同じ所に立つ
+export const MIYAKO_CHARACTERS: CharacterDef[] = [
+  {
+    id: 'ichime', name: '市女', figure: 'nyobo',
+    robes: ['#7a6a4a', '#a8946a', '#f2ecd9'],
+    day: [11.5, 2.6], evening: [11.5, 2.6], scale: 1.7,
+  },
+  {
+    id: 'okina', name: '翁', figure: 'aruji',
+    robes: ['#6a6a62', '#f2ecd9'],
+    day: [2.2, -24.5], evening: [2.2, -24.5], scale: 1.6,
+  },
+  {
+    id: 'michiwara', name: '大路の童', figure: 'warawa',
+    robes: ['#8a7a5a', '#f2ecd9'],
+    day: [-3, 4], evening: [-3, 4], scale: 1.25,
+  },
+]
+
+// 全員（会話や名前引きは場面をまたいで参照される）
+export const ALL_CHARACTERS = [...CHARACTERS, ...MIYAKO_CHARACTERS]
+
+export const charById = (id: string) => ALL_CHARACTERS.find(c => c.id === id)!
 export const charPos = (c: CharacterDef, t: number): [number, number] =>
   t >= 0.62 ? c.evening : c.day

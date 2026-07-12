@@ -7,6 +7,7 @@ export const WAKE_LINES: DialogueLine[] = [
   { speaker: '小侍従', text: 'ふしぎな子。蔵の陰にたおれていたのよ。' },
   { speaker: '小侍従', text: 'その古い草子、だいじそうに抱えて。' },
   { speaker: '小侍従', text: '殿が、しばらく置いてよいと。' },
+  { speaker: '小侍従', text: '装束はね、季節に合う色をえらぶの。「色目」というのよ。' },
   { speaker: '小侍従', text: 'さ、身支度をなさい。' },
 ]
 
@@ -215,6 +216,45 @@ export function getDialogue(charId: string, ctx: DialogueCtx): DialogueLine[] {
       return [
         { speaker: '小菊', text: 'またあそぼうね！　ぜったいだよ！' },
         { speaker: '小菊', text: 'ゆびきり！' },
+      ]
+
+    // ---------- 都大路の人びと ----------
+    case 'ichime':
+      if (n === 0) return [
+        { speaker: '市女', text: 'いらっしゃい。東の市は、なんでもあるよ。' },
+        { speaker: '市女', text: '絹に、塩に、干し魚。……見ておいき。' },
+      ]
+      if (ctx.day >= 5) return [
+        { speaker: '市女', text: '唐物はもう入らないねえ。船が絶えたから。' },
+        { speaker: '市女', text: 'そのぶん、この国の品が良くなったのさ。' },
+      ]
+      return [
+        { speaker: '市女', text: '市がひらくのは、日のあるうちだけ。' },
+        { speaker: '市女', text: '夕鐘が鳴ったら、みんな帰るんだよ。' },
+      ]
+
+    case 'okina':
+      if (n === 0) return [
+        { speaker: '翁', text: 'この門が、羅城門。都の南のはてじゃ。' },
+        { speaker: '翁', text: 'この先は、もう都の外……行くでないぞ。' },
+      ]
+      if (ctx.day >= 4) return [
+        { speaker: '翁', text: '東国では、武士とやらが力をつけておるそうな。' },
+        { speaker: '翁', text: '……都の栄えも、いつまでつづくかのう。' },
+      ]
+      return [
+        { speaker: '翁', text: '昔はな、この大路を唐の使いも歩いたもんじゃ。' },
+        { speaker: '翁', text: 'いまは、荷車と童ばかりよ。ほっほ。' },
+      ]
+
+    case 'michiwara':
+      if (n === 0) return [
+        { speaker: '大路の童', text: 'きみ、見ない顔！　どこの子？' },
+        { speaker: '大路の童', text: '牛車が来たら、はしっこに寄るんだよ。' },
+      ]
+      return [
+        { speaker: '大路の童', text: 'あの塔、五重塔っていうんだ。東寺の。' },
+        { speaker: '大路の童', text: 'てっぺんまで、鳥しかのぼれないね。' },
       ]
   }
   return []

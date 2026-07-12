@@ -10,6 +10,21 @@ export const heldKeys = new Set<string>()
 // on はドラッグ判定が確定してから true になる（素早い単クリックでは立たない）。
 export const drive = { on: false }
 
+// カメラの向きと引き。yawGoal/distGoal へ毎フレーム緩やかに寄る。
+// 回転は45°刻み（⟲⟳ボタン・q/eキー）、引きはピンチ/ホイールで連続。
+export const cam = { yaw: 0, dist: 1, yawGoal: 0, distGoal: 1 }
+export function rotateCam(dir: 1 | -1) { cam.yawGoal += dir * Math.PI / 4 }
+export function zoomCam(delta: number) {
+  cam.distGoal = Math.min(1.6, Math.max(0.55, cam.distGoal + delta))
+}
+export function resetCam() { cam.yaw = 0; cam.yawGoal = 0; cam.dist = 1; cam.distGoal = 1 }
+
+// タップ移動の目印（地面に立つ小さな波紋）。t は残り時間
+export const tapMark = { x: 0, z: 0, t: 0 }
+
+// 鯉寄せ：餌を撒いてからの残り時間。池の鯉がこの間だけ岸へ寄る
+export const koiCall = { t: 0 }
+
 // タブが裏に回ると rAF が止まり、戻った最初のフレームに「留守のあいだ全部」の dt が渡る。
 // そのままだと一日が一瞬で暮れてしまうので、1フレームぶんとして扱う時間に上限を置く。
 export function clampDt(dt: number): number {

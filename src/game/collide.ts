@@ -1,10 +1,11 @@
-import { getPack } from './pack'
+import { getPack, getArea } from './pack'
 import type { Circle } from './solids'
 
 // 人（登場人物）は時刻で立ち位置が変わるので、毎フレーム円を組み直す。
+// いまの場面にいる人だけ当てる。
 function charCircles(t: number): Circle[] {
   const pack = getPack()
-  const cs = pack.CHARACTERS
+  const cs = getArea().CHARACTERS
   const out: Circle[] = []
   for (let i = 0; i < cs.length; i++) {
     const c = cs[i]
@@ -33,13 +34,13 @@ function ejectFrom(nx: number, nz: number, circles: readonly Circle[]): [number,
 // 壁は軸ごとに滑らせ、物と人は円で押し出す。
 // 押し出した先が壁の中なら、その一歩は無かったことにする（＝止まる）。
 export function resolveMove(px: number, pz: number, nx: number, nz: number, t: number): [number, number] {
-  const blocked = getPack().blocked
+  const blocked = getArea().blocked
   if (blocked(nx, nz)) {
     if (!blocked(nx, pz)) nz = pz
     else if (!blocked(px, nz)) nx = px
     else { nx = px; nz = pz }
   }
-  ;[nx, nz] = ejectFrom(nx, nz, getPack().solids)
+  ;[nx, nz] = ejectFrom(nx, nz, getArea().solids)
   ;[nx, nz] = ejectFrom(nx, nz, charCircles(t))
   if (blocked(nx, nz)) return [px, pz]
   return [nx, nz]
@@ -50,6 +51,6 @@ if (import.meta.env.DEV) {
   (globalThis as Record<string, unknown>).__collide = {
     resolveMove,
     charCircles,
-    solids: () => getPack().solids,
+    solids: () => getArea().solids,
   }
 }

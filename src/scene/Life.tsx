@@ -5,7 +5,7 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGame } from '../game/store'
-import { getPack } from '../game/pack'
+import { getArea } from '../game/pack'
 import { playerWorld, clampDt } from '../game/live'
 import { toTexture, leafCanvas, ringCanvas } from '../engine/textures'
 
@@ -104,7 +104,7 @@ function Footfalls() {
 
   useFrame((_, rawDt) => {
     const dt = clampDt(rawDt)
-    const groundY = getPack().groundY
+    const groundY = getArea().groundY
     const dx = playerWorld.x - last.current.x
     const dz = playerWorld.z - last.current.y
     const moved = Math.hypot(dx, dz)

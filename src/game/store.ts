@@ -1,8 +1,9 @@
 import { create } from 'zustand'
-import { getPack, setActiveEra } from './pack'
+import { getPack, getArea, setActiveEra, setAreaId } from './pack'
 import type { TLEvent } from './pack'
 import { loadSave, writeSave, clearSave } from '../engine/save'
-import { playerWorld } from './live'
+import { playerWorld, tapMark, koiCall, resetCam } from './live'
+import { pluck } from '../engine/ambience'
 
 export type Mode = 'home' | 'title' | 'prologue' | 'guide' | 'dialogue' | 'outfit' | 'roam' | 'letter' | 'diary' | 'epilogue'
 type Then = 'outfit' | 'letter' | 'roam'
@@ -42,8 +43,16 @@ interface GameState {
   toast: string | null             // flower species id
   pageToast: string | null         // 名所でひらいた出来事の名（年表へ誘う）
   nearby: { id: string; label: string } | null  // 足もとの触れられるもの（下部の札に出す）
+  area: string                     // いまいる場面（エリアid）
+  fade: boolean                    // 場面替えの暗転
+  hint: { id: string; text: string } | null     // 画面上部のヒント帯（初回だけ）
+  hintQueue: { id: string; text: string }[]
+  hintSeen: string[]
+  spotFacts: string[]              // けふ、遊びの場で得た栞
 
   chooseEra: (id: string) => void
+  travel: (gateId: string) => void
+  dismissHint: () => void
   start: (fresh: boolean) => void
   wake: () => void
   toHome: () => void
@@ -82,6 +91,14 @@ function interactablePos(id: string, t: number): [number, number] | null {
     const m = pack.landmarkById(id.slice(5))
     if (m) return m.approach
   }
+  if (id.startsWith('gate:')) {
+    const g = getArea().gates.find(g => g.id === id.slice(5))
+    if (g) return g.pos
+  }
+  if (id.startsWith('spot:')) {
+    const p = getArea().SPOTS.find(p => p.id === id.slice(5))
+    if (p) return p.pos
+  }
   return null
 }
 
@@ -107,16 +124,24 @@ export const useGame = create<GameState>((set, get) => ({
   toast: null,
   pageToast: null,
   nearby: null,
+  area: 'tei',
+  fade: false,
+  hint: null,
+  hintQueue: [],
+  hintSeen: [],
+  spotFacts: [],
 
   // ホームで篇をえらぶ：セーブ層も切り替え、その篇の扉（Title）へ
   chooseEra: (id) => {
     setActiveEra(id)
-    set({ mode: 'title', dialogue: null })
+    set({ mode: 'title', dialogue: null, area: getPack().homeArea })
   },
 
   start: (fresh) => {
     const pack = getPack()
     const save = fresh ? null : loadSave()
+    setAreaId(pack.homeArea)
+    resetCam()
     if (save) {
       const morning = pack.DAY_EVENTS[save.day]?.morning
       set({
@@ -124,8 +149,9 @@ export const useGame = create<GameState>((set, get) => ({
         zufu: save.zufu, talked: save.talked, diary: save.diary,
         letterSeen: save.letterSeen, flags: save.flags ?? [],
         learnedEvents: save.learnedEvents ?? [],
-        collected: [], talkedToday: [], dayEventDone: false,
-        playerPos: pack.spawn,
+        hintSeen: save.hintSeen ?? [], hint: null, hintQueue: [],
+        collected: [], talkedToday: [], dayEventDone: false, spotFacts: [],
+        playerPos: pack.spawn, area: pack.homeArea, fade: false,
         mode: morning ? 'dialogue' : 'roam',
         dialogue: morning ? { lines: morning, i: 0, then: 'roam' } : null,
       })
@@ -134,9 +160,42 @@ export const useGame = create<GameState>((set, get) => ({
         mode: 'prologue', day: 1, t: START_T, outfit: null,
         zufu: [], talked: {}, talkedToday: [], diary: [],
         letterSeen: false, dayEventDone: false, flags: [], learnedEvents: [],
-        collected: [], playerPos: pack.spawn, dialogue: null,
+        hintSeen: [], hint: null, hintQueue: [], spotFacts: [],
+        collected: [], playerPos: pack.spawn, area: pack.homeArea, fade: false,
+        dialogue: null,
       })
     }
+  },
+
+  // 門にふれる：暗転して隣の場面へ。物忌みの日は出られない。
+  travel: (gateId) => {
+    const s = get()
+    if (s.mode !== 'roam' || s.fade) return
+    const pack = getPack()
+    const gate = getArea().gates.find(g => g.id === gateId)
+    if (!gate) return
+    const noTravel = pack.DAY_EVENTS[s.day]?.noTravel
+    if (noTravel && gate.to !== pack.homeArea) {
+      set({ mode: 'dialogue', dialogue: { lines: [{ text: noTravel }], i: 0, then: 'roam' }, target: null, pending: null })
+      return
+    }
+    set({ fade: true, target: null, pending: null, nearby: null })
+    window.setTimeout(() => {
+      setAreaId(gate.to)
+      playerWorld.set(gate.spawn[0], 0, gate.spawn[1])
+      useGame.setState({ area: gate.to, playerPos: gate.spawn, fade: false })
+      if (gate.to !== pack.homeArea) {
+        queueHint('machi', 'ここは都の大路。市や塔をたずね、人にも話しかけてみよう')
+      }
+    }, 300)
+  },
+
+  dismissHint: () => {
+    const s = get()
+    if (!s.hint) return
+    const seen = s.hintSeen.includes(s.hint.id) ? s.hintSeen : [...s.hintSeen, s.hint.id]
+    const [next, ...rest] = s.hintQueue
+    set({ hint: next ?? null, hintQueue: rest, hintSeen: seen })
   },
 
   wake: () => set({ mode: 'dialogue', dialogue: { lines: getPack().WAKE_LINES, i: 0, then: 'outfit' } }),
@@ -153,6 +212,7 @@ export const useGame = create<GameState>((set, get) => ({
       set({ t: Math.min(s.t + tAcc, 0.9) })
       tAcc = 0
       maybeEvening(set, get)
+      maybeHints(get)
     }
   },
 
@@ -162,6 +222,7 @@ export const useGame = create<GameState>((set, get) => ({
     // タップ地点の近くに触れられるものがあれば、そちらへ（寛容な当たり判定）
     const near = nearestInteractable(x, z, s)
     if (near) { get().interact(near); return }
+    tapMark.x = x; tapMark.z = z; tapMark.t = 0.8
     set({ target: [x, z], pending: null })
   },
 
@@ -181,6 +242,14 @@ export const useGame = create<GameState>((set, get) => ({
     if (id.startsWith('mark:')) {
       const m = getPack().landmarkById(id.slice(5))
       if (m && Math.hypot(m.pos[0] - px, m.pos[1] - pz) <= m.reach) {
+        set({ target: null, pending: null })
+        resolve(id, set, get)
+        return
+      }
+    }
+    if (id.startsWith('gate:')) {
+      const g = getArea().gates.find(g => g.id === id.slice(5))
+      if (g && Math.hypot(g.pos[0] - px, g.pos[1] - pz) <= g.reach) {
         set({ target: null, pending: null })
         resolve(id, set, get)
         return
@@ -256,8 +325,10 @@ export const useGame = create<GameState>((set, get) => ({
     const morning = pack.DAY_EVENTS[day]?.morning
     // 篇ごとの図譜フック（平安：最終日にもみぢの押し葉が挟まる）
     const zufu = pack.onSleepZufu ? pack.onSleepZufu(day, s.zufu) : s.zufu
+    setAreaId(pack.homeArea)
     set({
       day, t: START_T, collected: [], talkedToday: [], dayEventDone: false, zufu,
+      spotFacts: [], area: pack.homeArea,
       mode: morning ? 'dialogue' : 'roam',
       dialogue: morning ? { lines: morning, i: 0, then: 'roam' } : null,
       target: null, pending: null, playerPos: pack.spawn,
@@ -265,7 +336,7 @@ export const useGame = create<GameState>((set, get) => ({
     writeSave({
       day, outfit: s.outfit, zufu, talked: s.talked,
       diary: s.diary, letterSeen: s.letterSeen, flags: s.flags,
-      learnedEvents: s.learnedEvents,
+      learnedEvents: s.learnedEvents, hintSeen: s.hintSeen,
     })
   },
 
@@ -278,32 +349,44 @@ if (import.meta.env.DEV) (window as unknown as { game: typeof useGame }).game = 
 
 // いちばん近い触れられるものを返す。名所は当たり円より広い reach まで受けるので、
 // 「光の方をタップ／近づく」だけで拾える（花・人・褥は radius のまま）。
+// いまの場面（エリア）にあるものだけを見る。
 function nearestInteractable(x: number, z: number, s: GameState, radius = 1.3): string | null {
   const pack = getPack()
+  const area = getArea()
   let best: string | null = null
   let bestD = Infinity
   const consider = (id: string, cx: number, cz: number, rad: number) => {
     const d = Math.hypot(cx - x, cz - z)
     if (d <= rad && d < bestD) { bestD = d; best = id }
   }
-  for (const c of pack.CHARACTERS) {
+  for (const c of area.CHARACTERS) {
     const [cx, cz] = pack.charPos(c, s.t)
     consider(`char:${c.id}`, cx, cz, radius)
   }
-  for (const f of pack.FLOWER_SPOTS) {
+  for (const f of area.FLOWER_SPOTS) {
     if (!s.collected.includes(f.id)) consider(`flower:${f.id}`, f.x, f.z, radius)
   }
-  for (const m of pack.LANDMARKS) consider(`mark:${m.id}`, m.pos[0], m.pos[1], Math.max(radius, m.reach))
-  consider('bed', pack.BED.x, pack.BED.z, radius)
+  for (const m of area.LANDMARKS) consider(`mark:${m.id}`, m.pos[0], m.pos[1], Math.max(radius, m.reach))
+  for (const g of area.gates) consider(`gate:${g.id}`, g.pos[0], g.pos[1], Math.max(radius, g.reach))
+  for (const p of area.SPOTS) consider(`spot:${p.id}`, p.pos[0], p.pos[1], Math.max(radius, p.reach))
+  if (area.hasBed) consider('bed', pack.BED.x, pack.BED.z, radius)
   return best
 }
 
-// いま歩いている先（pending）に「触れた」といえる円。名所は reach、ほかは足もと。
+// いま歩いている先（pending）に「触れた」といえる円。名所・門・遊び場は reach、ほかは足もと。
 export function pendingFireCircle(id: string, t: number): { x: number; z: number; r: number } | null {
   const pack = getPack()
   if (id.startsWith('mark:')) {
     const m = pack.landmarkById(id.slice(5))
     return m ? { x: m.pos[0], z: m.pos[1], r: m.reach } : null
+  }
+  if (id.startsWith('gate:')) {
+    const g = getArea().gates.find(g => g.id === id.slice(5))
+    return g ? { x: g.pos[0], z: g.pos[1], r: g.reach } : null
+  }
+  if (id.startsWith('spot:')) {
+    const p = getArea().SPOTS.find(p => p.id === id.slice(5))
+    return p ? { x: p.pos[0], z: p.pos[1], r: p.reach } : null
   }
   const pos = interactablePos(id, t)
   return pos ? { x: pos[0], z: pos[1], r: 1.1 } : null
@@ -321,6 +404,14 @@ function nearbyLabel(id: string): string {
   if (id.startsWith('mark:')) {
     const m = pack.landmarkById(id.slice(5))
     return m ? `${m.label}の頁を ひらく` : ''
+  }
+  if (id.startsWith('gate:')) {
+    const g = getArea().gates.find(g => g.id === id.slice(5))
+    return g ? `${g.label}へ ゆく` : ''
+  }
+  if (id.startsWith('spot:')) {
+    const p = getArea().SPOTS.find(p => p.id === id.slice(5))
+    return p ? p.label : ''
   }
   return ''
 }
@@ -342,11 +433,20 @@ function beat(set: Set, get: Get) {
 function maybeEvening(set: Set, get: Get) {
   const s = get()
   if (s.mode !== 'roam' || s.dayEventDone) return
-  const ev = getPack().DAY_EVENTS[s.day]?.evening
+  const pack = getPack()
+  const ev = pack.DAY_EVENTS[s.day]?.evening
   if (ev && s.t >= ev.at) {
+    // 外の場面にいたら、まず邸へ帰ってから宵の出来事（ひとこと添えて）
+    let lines = ev.lines
+    if (s.area !== pack.homeArea) {
+      setAreaId(pack.homeArea)
+      playerWorld.set(pack.spawn[0], 0, pack.spawn[1])
+      set({ area: pack.homeArea, playerPos: pack.spawn, nearby: null })
+      lines = [{ text: '日が暮れてきた。……邸へ、もどらなくちゃ。' }, ...ev.lines]
+    }
     set({
       dayEventDone: true, target: null, pending: null, mode: 'dialogue',
-      dialogue: { lines: ev.lines, i: 0, then: ev.then ?? 'roam' },
+      dialogue: { lines, i: 0, then: ev.then ?? 'roam' },
     })
   }
 }
@@ -396,6 +496,7 @@ function resolve(id: string, set: Set, get: Get) {
       mode: 'dialogue',
       dialogue: { lines, i: 0, then: 'roam' },
     })
+    if (evs.length) queueHint('book', '右上の草子をひらくと、年表と持ちこんだ試験が読める')
     return
   }
   if (id.startsWith('char:')) {
@@ -418,8 +519,23 @@ function resolve(id: string, set: Set, get: Get) {
     if (!spot || s.collected.includes(spotId)) return
     const zufu = s.zufu.includes(spot.species) ? s.zufu : [...s.zufu, spot.species]
     set({ collected: [...s.collected, spotId], zufu, toast: spot.species })
+    queueHint('flower', '摘んだ草花は、宵の絵日記の図譜にたまってゆく')
     beat(set, get)
     maybeEvening(set, get)
+    return
+  }
+  if (id.startsWith('gate:')) {
+    get().travel(id.slice(5))
+    return
+  }
+  if (id.startsWith('spot:')) {
+    const p = getArea().SPOTS.find(p => p.id === id.slice(5))
+    if (!p) return
+    if (p.kind === 'koi') koiCall.t = 6
+    if (p.kind === 'koto') pluck()
+    if (p.factId && !s.spotFacts.includes(p.factId)) set({ spotFacts: [...s.spotFacts, p.factId] })
+    if (p.lines) set({ mode: 'dialogue', dialogue: { lines: p.lines, i: 0, then: 'roam' } })
+    return
   }
 }
 
@@ -462,6 +578,9 @@ function openDiary(set: Set, get: Get) {
     }
   }
 
+  // けふ、遊びの場（市・琴・鯉…）で得た栞
+  factIds.push(...s.spotFacts)
+
   if (lines.length === 0) lines.push('けふは、ただ庭をあるいた。')
 
   const entry: DiaryEntry = {
@@ -471,4 +590,33 @@ function openDiary(set: Set, get: Get) {
     factIds: [...new Set(factIds)].slice(0, 3),
   }
   set({ diary: [...s.diary, entry], mode: 'diary' })
+}
+
+// ---------- 初回ヒント帯（読ませない：一文だけ、数秒で消える） ----------
+
+// 一度見たものは二度と出さない。出ている間は列に積んで、順に一枚ずつ。
+export function queueHint(id: string, text: string) {
+  const s = useGame.getState()
+  if (s.hintSeen.includes(id)) return
+  if (s.hint?.id === id || s.hintQueue.some(h => h.id === id)) return
+  if (s.hint) useGame.setState({ hintQueue: [...s.hintQueue, { id, text }] })
+  else useGame.setState({ hint: { id, text } })
+}
+
+// 場面に応じて折々に出すヒント。tick から低頻度で呼ばれる。
+function maybeHints(get: Get) {
+  const s = get()
+  const pack = getPack()
+  if (s.mode !== 'roam') return
+  // 目覚めて最初の朝：歩きかた → ふれかた → 見まわしかた → 門
+  if (s.day === 1 && s.area === pack.homeArea) {
+    queueHint('walk', '行きたい所をタップ（長押しでも、矢印キーでも）あるける')
+    queueHint('touch', '光るものや人のそばへゆくと、下に札が出る——ふれてみよう')
+    queueHint('cam', '右下の ⟲ ⟳ で、あたりを見まわせる')
+    if (getArea().gates.length) queueHint('gate', '南の門から、邸の外へも出られる')
+  }
+  // 日が暮れたら、寝所へ
+  if (s.t >= 0.7 && s.area === pack.homeArea) {
+    queueHint('night', '日が暮れた。寝所にふれると、宵の絵日記をつけて眠れる')
+  }
 }

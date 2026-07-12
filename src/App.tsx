@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { useGame } from './game/store'
-import { heldKeys, isMoveKey, drive } from './game/live'
+import { heldKeys, isMoveKey, drive, rotateCam, zoomCam } from './game/live'
 import { SceneRoot } from './scene/SceneRoot'
-import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, PageToast, Hud, TouchPrompt, Home, Title, Prologue, Guide, Epilogue } from './game/ui/Ui'
+import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, PageToast, Hud, TouchPrompt, Home, Title, Prologue, Guide, Epilogue, HintRibbon, Fade } from './game/ui/Ui'
 import { DiaryNight, DiaryBook } from './game/ui/Diary'
 import { OrientationGuard } from './game/ui/Orientation'
 import { initAmbience } from './engine/ambience'
@@ -68,6 +68,12 @@ export default function App() {
         return
       }
       const s = useGame.getState()
+      // q/e で見まわす（roam中のみ）
+      if (s.mode === 'roam' && (key === 'q' || key === 'e')) {
+        e.preventDefault()
+        if (!e.repeat) rotateCam(key === 'q' ? 1 : -1)
+        return
+      }
       if (key === ' ' || key === 'Enter') {
         e.preventDefault()
         if (e.repeat) return
@@ -92,13 +98,22 @@ export default function App() {
       heldKeys.delete(key)
     }
     const clear = () => heldKeys.clear()
+    // ホイール/ピンチ相当で、カメラを寄せる・引く
+    const wheel = (e: WheelEvent) => {
+      if (useGame.getState().mode !== 'roam') return
+      if (!(e.target instanceof HTMLCanvasElement)) return
+      e.preventDefault()
+      zoomCam(e.deltaY > 0 ? 0.08 : -0.08)
+    }
     window.addEventListener('keydown', down)
     window.addEventListener('keyup', up)
     window.addEventListener('blur', clear)
+    window.addEventListener('wheel', wheel, { passive: false })
     return () => {
       window.removeEventListener('keydown', down)
       window.removeEventListener('keyup', up)
       window.removeEventListener('blur', clear)
+      window.removeEventListener('wheel', wheel)
     }
   }, [])
 
@@ -110,6 +125,7 @@ export default function App() {
       <div className="ui-layer">
         {mode === 'roam' && <Hud />}
         {mode === 'roam' && <TouchPrompt />}
+        {mode === 'roam' && <HintRibbon />}
         {toast && <Toast />}
         {pageToast && <PageToast />}
         {mode === 'dialogue' && <DialogueBox />}
@@ -123,6 +139,7 @@ export default function App() {
         {mode === 'epilogue' && <Epilogue />}
         {mode === 'title' && <Title />}
       </div>
+      {inWorld && <Fade />}
       <OrientationGuard />
     </div>
   )

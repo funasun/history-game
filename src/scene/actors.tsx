@@ -2,10 +2,10 @@ import { useMemo, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGame, pendingFireCircle, findNearby } from '../game/store'
-import { getPack } from '../game/pack'
+import { getPack, getArea } from '../game/pack'
 import { P } from '../heian/palette'
-import { toTexture, flowerCanvas, haloCanvas, faceCanvas, labelCanvas, labelHeightPx, LABEL_W, type FigureKind } from '../engine/textures'
-import { playerWorld, keyDir, clampDt } from '../game/live'
+import { toTexture, flowerCanvas, haloCanvas, faceCanvas, labelCanvas, ringCanvas, labelHeightPx, LABEL_W, type FigureKind } from '../engine/textures'
+import { playerWorld, keyDir, clampDt, cam, tapMark } from '../game/live'
 import { resolveMove } from '../game/collide'
 
 const noRaycast = () => null
@@ -153,7 +153,7 @@ export function Player() {
   useFrame((_, rawDt) => {
     const dt = clampDt(rawDt)
     const s = useGame.getState()
-    const { groundY } = getPack()
+    const { groundY } = getArea()
     const p = pos.current
     const t = s.t
     // 歩いていく先（pending）の触れ円に入ったら、到着を待たずその場でひらく＝反応を軽く
@@ -166,7 +166,13 @@ export function Player() {
         fired = true
       }
     }
-    const dir = !fired && s.mode === 'roam' ? keyDir() : null
+    // キーの上下左右は「見えている画面」の上下左右——カメラの向きで回して世界方向へ
+    const rawDir = !fired && s.mode === 'roam' ? keyDir() : null
+    let dir: [number, number] | null = null
+    if (rawDir) {
+      const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw)
+      dir = [rawDir[0] * cy + rawDir[1] * sy, -rawDir[0] * sy + rawDir[1] * cy]
+    }
     if (dir) {
       // キー移動：タップ目的地は破棄
       if (s.target || s.pending) useGame.setState({ target: null, pending: null })
@@ -208,8 +214,8 @@ export function Player() {
         }
       }
     } else if (!fired) {
-      // 立ち止まったらこちら（南）を向く。重なりがあればそっと押し出す。
-      rotY.current = turnToward(rotY.current, 0, Math.min(1, 4 * dt))
+      // 立ち止まったらこちら（カメラの方）を向く。重なりがあればそっと押し出す。
+      rotY.current = turnToward(rotY.current, cam.yaw, Math.min(1, 4 * dt))
       const [ex, ez] = resolveMove(p.x, p.z, p.x, p.z, t)
       p.x = ex; p.z = ez
     }
@@ -244,7 +250,8 @@ export function Player() {
 export function Characters() {
   const t = useGame(s => s.t)
   const interact = useGame(s => s.interact)
-  const { CHARACTERS, charPos, groundY } = getPack()
+  const { charPos } = getPack()
+  const { CHARACTERS, groundY } = getArea()
   return (
     <group>
       {CHARACTERS.map(c => {
@@ -269,7 +276,8 @@ export function Characters() {
 export function Flowers() {
   const collected = useGame(s => s.collected)
   const interact = useGame(s => s.interact)
-  const { FLOWER_SPOTS, flowerById } = getPack()
+  const { flowerById } = getPack()
+  const { FLOWER_SPOTS } = getArea()
   return (
     <group>
       {FLOWER_SPOTS.filter(f => !collected.includes(f.id)).map(f => {
@@ -300,9 +308,11 @@ export function Flowers() {
 export function Bed() {
   const t = useGame(s => s.t)
   const interact = useGame(s => s.interact)
-  const { BED, groundY } = getPack()
-  const gy = groundY(BED.x, BED.z)
+  const { BED } = getPack()
+  const { groundY, hasBed } = getArea()
   const sleepy = t >= 0.7
+  if (!hasBed) return null
+  const gy = groundY(BED.x, BED.z)
   return (
     <group>
       <Halo x={BED.x} z={BED.z} y={gy + 0.16} r={1.1} strength={sleepy ? 0.7 : 0.18} />
@@ -364,7 +374,8 @@ function NamePlate({ id, x, y, z, label, seen }: { id: string; x: number; y: num
 export function Landmarks() {
   const interact = useGame(s => s.interact)
   const learned = useGame(s => s.learnedEvents)
-  const { LANDMARKS, groundY, LandmarkMesh } = getPack()
+  const { LandmarkMesh } = getPack()
+  const { LANDMARKS, groundY } = getArea()
   return (
     <group>
       {LANDMARKS.map(m => {
@@ -399,7 +410,7 @@ export function Landmarks() {
 // （文字で教えず、光でいざなう——もののあはれの狐火のように）
 export function GuideMote() {
   const learned = useGame(s => s.learnedEvents)
-  const { LANDMARKS, groundY } = getPack()
+  const { LANDMARKS, groundY } = getArea()
   const group = useRef<THREE.Group>(null)
   const mat = useRef<THREE.MeshBasicMaterial>(null)
   const tex = useMemo(() => toTexture('halo', haloCanvas), [])
@@ -437,5 +448,89 @@ export function GuideMote() {
         <meshBasicMaterial ref={mat} map={tex} color={P.kin} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
       </mesh>
     </group>
+  )
+}
+
+// 場面の出入口（門）。ふれると隣の場面へ。名の札とほのかな光で示す。
+export function Gates() {
+  const interact = useGame(s => s.interact)
+  const { gates, groundY } = getArea()
+  return (
+    <group>
+      {gates.map(g => {
+        const gy = groundY(g.pos[0], g.pos[1])
+        return (
+          <group key={g.id}>
+            <Halo x={g.pos[0]} z={g.pos[1]} y={gy + 0.04} r={1.15} strength={0.42} />
+            <group
+              position={[g.pos[0], gy, g.pos[1]]}
+              onClick={e => { e.stopPropagation(); interact(`gate:${g.id}`) }}
+            >
+              {/* 見えない受け皿（クリックしやすく） */}
+              <mesh position={[0, 1.2, 0]}>
+                <cylinderGeometry args={[1.1, 1.1, 2.4, 10]} />
+                <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+              </mesh>
+            </group>
+            <NamePlate id={`gate:${g.id}`} x={g.pos[0]} y={gy + 2.1} z={g.pos[1]} label={g.label} seen={false} />
+          </group>
+        )
+      })}
+    </group>
+  )
+}
+
+// 遊びの場（琴・鯉の餌・市の店…）。小さな光と札で「触れられる」と知らせる。
+export function Spots() {
+  const interact = useGame(s => s.interact)
+  const { SPOTS, groundY } = getArea()
+  return (
+    <group>
+      {SPOTS.map(p => {
+        const gy = groundY(p.pos[0], p.pos[1])
+        return (
+          <group key={p.id}>
+            <Halo x={p.pos[0]} z={p.pos[1]} y={gy + 0.04} r={0.62} strength={0.4} />
+            <group
+              position={[p.pos[0], gy, p.pos[1]]}
+              onClick={e => { e.stopPropagation(); interact(`spot:${p.id}`) }}
+            >
+              <mesh position={[0, 0.7, 0]}>
+                <cylinderGeometry args={[0.7, 0.7, 1.4, 8]} />
+                <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+              </mesh>
+            </group>
+            <NamePlate id={`spot:${p.id}`} x={p.pos[0]} y={gy + 1.5} z={p.pos[1]} label={p.label} seen />
+          </group>
+        )
+      })}
+    </group>
+  )
+}
+
+// タップ移動の目印：タップした地面に、金の波紋がひとつ立って消える
+export function TapMark() {
+  const mesh = useRef<THREE.Mesh>(null)
+  const mat = useRef<THREE.MeshBasicMaterial>(null)
+  const tex = useMemo(() => toTexture('ring', ringCanvas), [])
+  useFrame((_, rawDt) => {
+    const dt = clampDt(rawDt)
+    const m = mesh.current, a = mat.current
+    if (!m || !a) return
+    if (tapMark.t <= 0) { if (m.visible) m.visible = false; return }
+    tapMark.t = Math.max(0, tapMark.t - dt)
+    const k = 1 - tapMark.t / 0.8
+    const gy = getArea().groundY(tapMark.x, tapMark.z)
+    m.visible = true
+    m.position.set(tapMark.x, gy + 0.05, tapMark.z)
+    const sc = 0.5 + k * 1.1
+    m.scale.set(sc, sc, sc)
+    a.opacity = 0.55 * (1 - k)
+  })
+  return (
+    <mesh ref={mesh} rotation-x={-Math.PI / 2} visible={false} raycast={noRaycast}>
+      <planeGeometry args={[1, 1]} />
+      <meshBasicMaterial ref={mat} map={tex} color={P.kin} transparent opacity={0} depthWrite={false} />
+    </mesh>
   )
 }

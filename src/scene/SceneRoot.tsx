@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, events, useFrame, useThree } from '@react-three/fiber'
 import type { RootState } from '@react-three/fiber'
 import { PerspectiveCamera } from '@react-three/drei'
@@ -5,9 +6,83 @@ import * as THREE from 'three'
 import { useGame } from '../game/store'
 import { getPack } from '../game/pack'
 import { World } from './World'
-import { Player, Characters, Flowers, Bed, Landmarks, GuideMote } from './actors'
+import { Player, Characters, Flowers, Bed, Landmarks, GuideMote, Gates, Spots, TapMark } from './actors'
 import { Life } from './Life'
-import { playerWorld, drive, clampDt } from '../game/live'
+import { playerWorld, drive, clampDt, cam } from '../game/live'
+import { toTexture, cloudCanvas } from '../engine/textures'
+
+const noRaycast = () => null
+
+// 遠山：どの場面でも霞のむこうに横たわる（南＝+z の弧は、鎌倉の海へあけておく）
+function DistantHills() {
+  const hills = useMemo(() => {
+    const arr: { x: number; z: number; r: number; h: number; c: string }[] = []
+    const N = 14
+    for (let i = 0; i < N; i++) {
+      const a = (i / N) * Math.PI * 2 + 0.22
+      if (Math.sin(a) > 0.5) continue
+      const rad = 48 + ((i * 37) % 13)
+      arr.push({
+        x: Math.cos(a) * rad,
+        z: Math.sin(a) * rad,
+        r: 9 + ((i * 53) % 7),
+        h: 6.5 + ((i * 29) % 5),
+        c: i % 2 ? '#5c6e5e' : '#66755f',
+      })
+    }
+    return arr
+  }, [])
+  return (
+    <group>
+      {hills.map((h, i) => (
+        <mesh key={i} position={[h.x, h.h / 2 - 0.4, h.z]} raycast={noRaycast}>
+          <coneGeometry args={[h.r, h.h, 7]} />
+          <meshBasicMaterial color={h.c} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
+// 空をながれる雲。夜はうすくなる
+function Clouds() {
+  const tex = useMemo(() => toTexture('cloud', cloudCanvas), [])
+  const N = 6
+  const refs = useRef<(THREE.Mesh | null)[]>([])
+  const data = useRef(Array.from({ length: N }, (_, i) => ({
+    x: (i - 2.5) * 26 + ((i * 17) % 9),
+    z: ((i * 31) % 60) - 30,
+    y: 13 + ((i * 23) % 5),
+    s: 9 + ((i * 13) % 6),
+    v: 0.25 + ((i * 7) % 4) * 0.08,
+    o: 0.4 + (i % 3) * 0.1,
+  })))
+  useFrame((_, rawDt) => {
+    const dt = clampDt(rawDt)
+    const t = useGame.getState().t
+    const night = Math.min(1, Math.max(0, (t - 0.58) / 0.14))
+    for (let i = 0; i < N; i++) {
+      const c = data.current[i]
+      c.x += c.v * dt
+      if (c.x - playerWorld.x > 55) c.x -= 110
+      if (c.x - playerWorld.x < -55) c.x += 110
+      const m = refs.current[i]
+      if (!m) continue
+      m.position.set(c.x, c.y, c.z)
+      ;(m.material as THREE.MeshBasicMaterial).opacity = c.o * (1 - 0.55 * night)
+    }
+  })
+  return (
+    <group>
+      {data.current.map((c, i) => (
+        <mesh key={i} ref={el => { refs.current[i] = el }} rotation-x={-Math.PI / 2} raycast={noRaycast}>
+          <planeGeometry args={[c.s, c.s * 0.5]} />
+          <meshBasicMaterial map={tex} transparent opacity={c.o} depthWrite={false} side={THREE.DoubleSide} fog={false} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
 
 function Atmosphere() {
   const scene = useThree(s => s.scene)
@@ -20,6 +95,63 @@ function Atmosphere() {
     else scene.background.set(col)
     if (!scene.fog) scene.fog = new THREE.Fog(col, 34, 70)
     else (scene.fog as THREE.Fog).color.set(col)
+  })
+  return null
+}
+
+// 日の光。プレイヤーについてまわり、届く範囲に影を落とす。
+function SunLight() {
+  const light = useRef<THREE.DirectionalLight>(null)
+  const scene = useThree(s => s.scene)
+  useEffect(() => {
+    const l = light.current
+    if (!l) return
+    scene.add(l.target)
+    return () => { scene.remove(l.target) }
+  }, [scene])
+  useFrame(() => {
+    const l = light.current
+    if (!l) return
+    l.position.set(playerWorld.x + 9, 15, playerWorld.z + 7)
+    l.target.position.set(playerWorld.x, 0, playerWorld.z)
+    l.target.updateMatrixWorld()
+  })
+  return (
+    <directionalLight
+      ref={light}
+      castShadow
+      intensity={1.7}
+      position={[9, 15, 7]}
+      shadow-mapSize-width={2048}
+      shadow-mapSize-height={2048}
+      shadow-camera-left={-26}
+      shadow-camera-right={26}
+      shadow-camera-top={26}
+      shadow-camera-bottom={-26}
+      shadow-camera-near={1}
+      shadow-camera-far={64}
+      shadow-bias={-0.0004}
+    />
+  )
+}
+
+// 影の付与を自動化：不透明な Lambert 面（建物・木・人・地面）だけに落とす。
+// 透ける屋根や御簾・光の演出（transparent）は除外——吹抜屋台で影だけ残さない。
+function AutoShadows() {
+  const scene = useThree(s => s.scene)
+  const acc = useRef(1)
+  useFrame((_, dt) => {
+    acc.current += dt
+    if (acc.current < 0.5) return
+    acc.current = 0
+    scene.traverse(o => {
+      const m = o as THREE.Mesh
+      if (!m.isMesh) return
+      const mat = m.material as THREE.MeshLambertMaterial
+      const solid = !!mat && mat.isMeshLambertMaterial === true && !mat.transparent
+      if (m.castShadow !== solid) m.castShadow = solid
+      if (m.receiveShadow !== solid) m.receiveShadow = solid
+    })
   })
   return null
 }
@@ -50,12 +182,21 @@ function CameraRig() {
   const camera = useThree(s => s.camera)
   const size = useThree(s => s.size)
   useFrame(() => {
-    look.lerp(playerWorld, 0.07)
+    // 見まわし（45°刻み）と引きへ、なめらかに寄る
+    cam.yaw += (cam.yawGoal - cam.yaw) * 0.08
+    cam.dist += (cam.distGoal - cam.dist) * 0.08
+    // 場面替え（遠くへ跳んだ）なら追いかけず、すぐ切り替える
+    if (look.distanceTo(playerWorld) > 18) look.copy(playerWorld)
+    else look.lerp(playerWorld, 0.07)
     // 端末の縦横比に合わせてカメラを引く。横長（>=1.4）なら従来の画作りのまま、
     // 縦長・細身になるほど k を上げて引き、横方向の見切れを防ぐ。
     const aspect = size.width / Math.max(1, size.height)
-    const k = Math.min(1.7, Math.max(1, 1.4 / aspect))
-    camera.position.set(look.x, look.y + 7.6 * k, look.z + 11.2 * k)
+    const k = Math.min(1.7, Math.max(1, 1.4 / aspect)) * cam.dist
+    camera.position.set(
+      look.x + Math.sin(cam.yaw) * 11.2 * k,
+      look.y + 7.6 * k,
+      look.z + Math.cos(cam.yaw) * 11.2 * k,
+    )
     camera.lookAt(look.x, look.y + 1.0, look.z)
   })
   return null
@@ -95,27 +236,38 @@ const computePointer = (event: { offsetX: number; offsetY: number; clientX: numb
 }
 
 export function SceneRoot() {
+  // 場面（エリア）が替わったら、世界を丸ごと組み替える
+  const area = useGame(s => s.area)
   return (
     <Canvas
       flat
+      shadows
       dpr={[1, 2]}
       style={{ position: 'absolute', inset: 0 }}
       events={store => ({ ...events(store), compute: computePointer })}>
       <PerspectiveCamera makeDefault fov={42} near={0.5} far={200} position={[-3, 6.2, 3.2]} />
-      <ambientLight intensity={2.1} />
-      <directionalLight position={[8, 14, 6]} intensity={1.4} />
+      <ambientLight intensity={1.75} />
+      <SunLight />
       <Atmosphere />
       <CameraRig />
       <SizeFix />
-      <World />
-      <Landmarks />
-      <Flowers />
-      <Characters />
-      <Bed />
-      <Player />
-      <GuideMote />
+      <AutoShadows />
+      <DistantHills />
+      <Clouds />
+      <group key={area}>
+        <World />
+        <Landmarks />
+        <Flowers />
+        <Characters />
+        <Bed />
+        <Gates />
+        <Spots />
+        <Player />
+        <GuideMote />
+        <Life />
+      </group>
+      <TapMark />
       <MouseDrive />
-      <Life />
     </Canvas>
   )
 }

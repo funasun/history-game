@@ -9,6 +9,7 @@ export interface DayEvent {
   facts?: string[]
   talkFacts?: Record<string, string>   // その日その人と話していたら加わる栞
   icons?: string[]
+  noTravel?: string   // この日は門から出られない（物忌みなど）。ことわりの一言
 }
 
 export const DAY_EVENTS: Record<number, DayEvent> = {
@@ -69,6 +70,7 @@ export const DAY_EVENTS: Record<number, DayEvent> = {
     diaryLine: 'けふは物忌み。みな、静かに過ごした。',
     facts: ['monoimi'],
     talkFacts: { kogiku: 'toki' },
+    noTravel: 'けふは物忌み。門の外へは、出られない。',
   },
 
   4: {

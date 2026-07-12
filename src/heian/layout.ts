@@ -31,6 +31,19 @@ export const MISU: { x: number; z: number; w: number }[] = [
 export const POND = { x: -3, z: 8, rx: 8.5, rz: 4.2 }
 export const ISLAND = { x: -4.5, z: 8.5, r: 1.7 }
 
+// 反橋（北の岸から中島へ）。渡れる帯と、そのふくらみ
+export const BRIDGE = { x0: -5.1, x1: -3.9, z0: 3.6, z1: 7.0, rise: 0.55 }
+export function bridgeY(z: number): number {
+  const k = (z - BRIDGE.z0) / (BRIDGE.z1 - BRIDGE.z0)
+  return BRIDGE.rise * Math.sin(Math.PI * Math.min(1, Math.max(0, k)))
+}
+
+// 庭の石灯籠（見た目と当たりの共通の芯）
+export const LANTERNS: [number, number][] = [
+  [7.2, 6.8],
+  [-7.6, 2.0],
+]
+
 // 阿弥陀堂の土台（角ばった建物は円ではなく矩形で実寸に塞ぐ）。
 // world.tsx の base[6.4,0.4,3.2]@[-9,_,14] に合わせ、南面 z=12.3 は接近点(z=11.4)より北に残す。
 export const HALL_RECT = { x0: -12.3, x1: -5.7, z0: 12.3, z1: 15.7 }
@@ -78,7 +91,10 @@ export const KICHO = [
   { x: -5.5, z: -10.2, rot: 0 },
 ]
 
-// 移動できない場所（池・床の外周は乗れる）
+const onBridge = (x: number, z: number) =>
+  x > BRIDGE.x0 && x < BRIDGE.x1 && z > BRIDGE.z0 && z < BRIDGE.z1
+
+// 移動できない場所（池・床の外周は乗れる。反橋の上は渡れる）
 export function blocked(x: number, z: number): boolean {
   if (x < BOUNDS.minX || x > BOUNDS.maxX || z < BOUNDS.minZ || z > BOUNDS.maxZ) return true
   // 阿弥陀堂の土台（矩形）
@@ -86,16 +102,18 @@ export function blocked(x: number, z: number): boolean {
   const dx = (x - POND.x) / POND.rx
   const dz = (z - POND.z) / POND.rz
   if (dx * dx + dz * dz < 1) {
+    if (onBridge(x, z)) return false
     const ix = x - ISLAND.x, iz = z - ISLAND.z
     if (ix * ix + iz * iz > ISLAND.r * ISLAND.r) return true
   }
   return false
 }
 
-// その地点の床の高さ（床の上に乗る）
+// その地点の床の高さ（床の上に乗る。反橋はふくらみに沿う）
 export function groundY(x: number, z: number): number {
   for (const f of FLOORS) {
     if (Math.abs(x - f.x) <= f.w / 2 && Math.abs(z - f.z) <= f.d / 2) return f.h
   }
+  if (onBridge(x, z)) return bridgeY(z)
   return 0
 }

@@ -1,5 +1,5 @@
 // 鎌倉篇のパック。武家の都・五日の日記。草花摘みと文の場面はない。
-import type { Pack } from '../game/pack'
+import type { Pack, AreaDef } from '../game/pack'
 import { toKanji } from '../game/ui/date'
 import { TIMELINE, LANDMARKS, landmarkById } from './timeline'
 import { FACTS, factById } from './facts'
@@ -23,6 +23,20 @@ const KAMAKURA_SOLIDS = buildSolids({
   ],
 })
 
+// 鎌倉はひとつの場面（浜と都）で完結する
+const HAMA: AreaDef = {
+  id: 'hama', label: '鎌倉',
+  World: KamakuraWorld,
+  blocked, groundY,
+  solids: KAMAKURA_SOLIDS,
+  LANDMARKS,
+  CHARACTERS,
+  FLOWER_SPOTS,
+  SPOTS: [],
+  gates: [],
+  hasBed: true,
+}
+
 export const kamakuraPack: Pack = {
   id: 'kamakura',
   TIMELINE, LANDMARKS, landmarkById,
@@ -30,9 +44,11 @@ export const kamakuraPack: Pack = {
   CHARACTERS, charById, charPos,
   FLOWERS, FLOWER_SPOTS, flowerById,
   DAY_EVENTS, LAST_DAY,
-  BED, spawn: SPAWN, blocked, groundY, solids: KAMAKURA_SOLIDS,
+  BED, spawn: SPAWN,
+  areas: { hama: HAMA },
+  homeArea: 'hama',
   getDialogue, WAKE_LINES, OUTFIT_DONE_LINES, BED_EARLY,
-  World: KamakuraWorld, LandmarkMesh: KamakuraLandmarkMesh, skyColor, tintColor,
+  LandmarkMesh: KamakuraLandmarkMesh, skyColor, tintColor,
   hasFlowers: false, hasLetter: false,
 
   examTitle: EXAM_TITLE,
@@ -60,7 +76,9 @@ export const kamakuraPack: Pack = {
     ['あるく', '行きたい方を、タップ'],
     ['ふれる', '光る名所や、人に'],
     ['えらぶ', 'ことばは、心のままに'],
+    ['みまわす', '右下の ⟲⟳ で、ぐるり'],
   ],
+  outfitNote: '武家のふだん着は直垂。動きやすさが、鎌倉の気風。',
   guideNote: '光の柱がのぼる名所にふれると時代の頁がひらき、答案のこたえが埋まってゆく。日が暮れたら、寝所で宵の絵日記を。',
   outfits: [
     { name: '紺', color: '#31517a', under: '#25405f' },
