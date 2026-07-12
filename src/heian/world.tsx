@@ -227,7 +227,7 @@ function Lantern({ x, z }: { x: number; z: number }) {
   useFrame(({ clock }) => {
     const t = useGame.getState().t
     const night = Math.min(1, Math.max(0, (t - 0.58) / 0.14))
-    if (glow.current) glow.current.opacity = night * (0.55 + 0.15 * Math.sin(clock.elapsedTime * 5 + x))
+    if (glow.current) glow.current.opacity = night * (0.78 + 0.18 * Math.sin(clock.elapsedTime * 5 + x))
   })
   const stone = '#8f8a7c'
   return (
@@ -236,9 +236,10 @@ function Lantern({ x, z }: { x: number; z: number }) {
       <mesh position={[0, 0.52, 0]}><cylinderGeometry args={[0.09, 0.12, 0.6, 8]} /><meshLambertMaterial color={stone} /></mesh>
       <mesh position={[0, 0.96, 0]}><boxGeometry args={[0.4, 0.3, 0.4]} /><meshLambertMaterial color="#9a958a" /></mesh>
       <mesh position={[0, 1.2, 0]}><coneGeometry args={[0.42, 0.28, 6]} /><meshLambertMaterial color={stone} /></mesh>
+      {/* 火袋の火。箱（0.4角）より大きい球で、外へ滲む灯にする */}
       <mesh position={[0, 0.96, 0]} raycast={noRaycastFn}>
-        <sphereGeometry args={[0.15, 8, 8]} />
-        <meshBasicMaterial ref={glow} color="#ffc36a" transparent opacity={0} depthWrite={false} />
+        <sphereGeometry args={[0.27, 10, 8]} />
+        <meshBasicMaterial ref={glow} color="#ffd27a" transparent opacity={0} depthWrite={false} />
       </mesh>
     </group>
   )

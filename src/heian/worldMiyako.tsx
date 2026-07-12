@@ -156,12 +156,13 @@ function NightWindow({ x, z, west, seed }: { x: number; z: number; west: boolean
   useFrame(({ clock }) => {
     const t = useGame.getState().t
     const night = Math.min(1, Math.max(0, (t - 0.58) / 0.14))
-    if (mat.current) mat.current.opacity = night * (0.4 + 0.12 * Math.sin(clock.elapsedTime * 3 + seed * 2.1))
+    if (mat.current) mat.current.opacity = night * (0.8 + 0.2 * Math.sin(clock.elapsedTime * 3 + seed * 2.1))
   })
+  // 夜ティント(multiply)に沈まないよう、明るめの色・大きめの面で「灯りのにじみ」ごと描く
   return (
     <mesh position={[x + (west ? 0.012 : -0.012), 0.95, z]} rotation-y={west ? Math.PI / 2 : -Math.PI / 2} raycast={noRay}>
-      <planeGeometry args={[0.74, 0.44]} />
-      <meshBasicMaterial ref={mat} color="#ffc36a" transparent opacity={0} depthWrite={false} />
+      <planeGeometry args={[1.06, 0.62]} />
+      <meshBasicMaterial ref={mat} color="#ffe2a0" transparent opacity={0} depthWrite={false} />
     </mesh>
   )
 }
@@ -245,6 +246,10 @@ function Gissha() {
   const st = useRef({ z: -6, dir: 1 })
   useFrame(({ clock }, rawDt) => {
     const dt = clampDt(rawDt)
+    // 夜は牛車も宿へ。人かげとともに大路から消える
+    const night = Math.min(1, Math.max(0, (useGame.getState().t - 0.58) / 0.14))
+    if (g.current) g.current.visible = night < 0.55
+    if (night >= 0.55) return
     const s = st.current
     const sp = 1.1
     s.z += s.dir * sp * dt
@@ -311,6 +316,10 @@ function Walker({ x, mid, amp, speed, phase, robe, hat }: {
   const g = useRef<THREE.Group>(null)
   useFrame(({ clock }) => {
     if (!g.current) return
+    // 日が暮れると、大路から人かげが絶える
+    const night = Math.min(1, Math.max(0, (useGame.getState().t - 0.58) / 0.14))
+    g.current.visible = night < 0.55
+    if (!g.current.visible) return
     const et = clock.elapsedTime
     const k = et * speed * Math.PI * 2 + phase
     const z = mid + amp * Math.sin(k)

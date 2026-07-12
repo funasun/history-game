@@ -86,6 +86,10 @@ function Clouds() {
 
 function Atmosphere() {
   const scene = useThree(s => s.scene)
+  // 開発時だけ、検証用にシーンを覗けるようにする（window.game / __pw と同じ流儀）
+  useEffect(() => {
+    if (import.meta.env.DEV) (window as unknown as { __scene?: THREE.Scene }).__scene = scene
+  }, [scene])
   useFrame((_, rawDt) => {
     const dt = clampDt(rawDt)
     useGame.getState().tick(dt)
