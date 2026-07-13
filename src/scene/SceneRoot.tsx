@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, events, useFrame, useThree } from '@react-three/fiber'
 import type { RootState } from '@react-three/fiber'
-import { PerspectiveCamera } from '@react-three/drei'
+import { PerspectiveCamera, Stars } from '@react-three/drei'
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import { useGame } from '../game/store'
 import { getPack } from '../game/pack'
@@ -13,36 +14,7 @@ import { toTexture, cloudCanvas } from '../engine/textures'
 
 const noRaycast = () => null
 
-// 遠山：どの場面でも霞のむこうに横たわる（南＝+z の弧は、鎌倉の海へあけておく）
-function DistantHills() {
-  const hills = useMemo(() => {
-    const arr: { x: number; z: number; r: number; h: number; c: string }[] = []
-    const N = 14
-    for (let i = 0; i < N; i++) {
-      const a = (i / N) * Math.PI * 2 + 0.22
-      if (Math.sin(a) > 0.5) continue
-      const rad = 48 + ((i * 37) % 13)
-      arr.push({
-        x: Math.cos(a) * rad,
-        z: Math.sin(a) * rad,
-        r: 9 + ((i * 53) % 7),
-        h: 6.5 + ((i * 29) % 5),
-        c: i % 2 ? '#5c6e5e' : '#66755f',
-      })
-    }
-    return arr
-  }, [])
-  return (
-    <group>
-      {hills.map((h, i) => (
-        <mesh key={i} position={[h.x, h.h / 2 - 0.4, h.z]} raycast={noRaycast}>
-          <coneGeometry args={[h.r, h.h, 7]} />
-          <meshBasicMaterial color={h.c} />
-        </mesh>
-      ))}
-    </group>
-  )
-}
+// （旧「遠山」のコーン環は撤去——起伏の地形そのものが遠景を務める）
 
 // 空をながれる雲。夜はうすくなる
 function Clouds() {
@@ -80,6 +52,21 @@ function Clouds() {
           <meshBasicMaterial map={tex} transparent opacity={c.o} depthWrite={false} side={THREE.DoubleSide} fog={false} />
         </mesh>
       ))}
+    </group>
+  )
+}
+
+// 星月夜。日が暮れきると、空に星がまたたく（点は霞（fog）に沈まない）
+function NightStars() {
+  const grp = useRef<THREE.Group>(null)
+  useFrame(() => {
+    const t = useGame.getState().t
+    const night = Math.min(1, Math.max(0, (t - 0.62) / 0.16))
+    if (grp.current) grp.current.visible = night > 0.25
+  })
+  return (
+    <group ref={grp} visible={false}>
+      <Stars radius={80} depth={40} count={1100} factor={2.6} saturation={0} fade speed={0.6} />
     </group>
   )
 }
@@ -256,8 +243,8 @@ export function SceneRoot() {
       <CameraRig />
       <SizeFix />
       <AutoShadows />
-      <DistantHills />
       <Clouds />
+      <NightStars />
       <group key={area}>
         <World />
         <Landmarks />
@@ -272,6 +259,11 @@ export function SceneRoot() {
       </group>
       <TapMark />
       <MouseDrive />
+      {/* 淡い光のにじみ（宵の灯・光の柱がやわらかく滲む）と、絵巻の四隅の翳り */}
+      <EffectComposer multisampling={0}>
+        <Bloom intensity={0.4} luminanceThreshold={0.85} mipmapBlur />
+        <Vignette eskil={false} offset={0.22} darkness={0.42} />
+      </EffectComposer>
     </Canvas>
   )
 }

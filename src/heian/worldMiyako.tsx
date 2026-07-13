@@ -5,10 +5,12 @@ import * as THREE from 'three'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useGame } from '../game/store'
 import { P } from './palette'
-import { MIYAKO_BOUNDS, ROAD, HOUSES, MIYAKO_TREES, PARKED_CART, miyakoBlocked } from './miyako'
+import { MIYAKO_BOUNDS, ROAD, HOUSES, MIYAKO_TREES, PARKED_CART, MIYAKO_EXTRA_SOLIDS, miyakoBlocked } from './miyako'
 import { toTexture, groundCanvas } from '../engine/textures'
 import { clampDt } from '../game/live'
-import { Tree3D, useGroundTex } from './world'
+import { Tree3D } from './world'
+import { buildGroundGeometry, scatterPoints, applyInstances, mulberry32 } from '../engine/procedural'
+import { miyakoRelief, miyakoGroundColor } from './terrain'
 
 const noRay = () => null
 const PLANK = '#6a5844'      // 板葺の屋根
@@ -16,7 +18,8 @@ const PLANK_DK = '#57483a'
 
 export function MiyakoWorld() {
   const walkTo = useGame(s => s.walkTo)
-  const groundTex = useGroundTex('ground-miyako', '#b0a684', '#a09678', '#c0b494', 26)
+  // 起伏と頂点色の地面（大路は平ら、都の外れに野と東山が起きる）
+  const groundGeo = useMemo(() => buildGroundGeometry(170, 150, miyakoRelief, miyakoGroundColor), [])
   const roadTex = useMemo(() => {
     const t = toTexture('ground-road', () => groundCanvas('#c9bc9c', '#b9ac8c', '#d6caa8'))
     t.wrapS = t.wrapT = THREE.RepeatWrapping
@@ -37,10 +40,9 @@ export function MiyakoWorld() {
 
   return (
     <group>
-      {/* 地面 */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, 0]} onClick={onGround}>
-        <planeGeometry args={[160, 160]} />
-        <meshLambertMaterial map={groundTex} />
+      {/* 地面（起伏と頂点色） */}
+      <mesh geometry={groundGeo} onClick={onGround}>
+        <meshLambertMaterial vertexColors />
       </mesh>
       {/* 朱雀大路の路面 */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.001, roadZ]} onClick={onGround}>
@@ -103,8 +105,123 @@ export function MiyakoWorld() {
 
       {/* 並木と空き地の木 */}
       {MIYAKO_TREES.map((tr, i) => <Tree3D key={i} x={tr.x} z={tr.z} kind={tr.kind} s={tr.s} />)}
+
+      {/* 道端の草・都のはての野山・条坊につらなる家並み */}
+      <MiyakoVegetation />
     </group>
   )
+}
+
+// 都のにぎわいの背景。種で決まる散布——きのうと同じ都。
+// 見た目だけ（当たりなし・raycast なし）
+function MiyakoVegetation() {
+  const group = useMemo(() => {
+    const g = new THREE.Group()
+    const color = new THREE.Color()
+    const B = MIYAKO_BOUNDS
+
+    // --- 道端の草（大路と側溝を外し、店・牛車のきわを避ける） ---
+    const tufts = scatterPoints(90, 137, { x0: B.minX + 0.6, x1: B.maxX - 0.6, z0: B.minZ + 0.6, z1: B.maxZ - 0.6 },
+      (x, z) => !miyakoBlocked(x, z) && Math.abs(x) > ROAD.x1 + 1.1
+        && MIYAKO_EXTRA_SOLIDS.every(c => (x - c.x) ** 2 + (z - c.z) ** 2 > (c.r + 0.5) ** 2)
+        && (x - 10) ** 2 + (z - 16.4) ** 2 > 6)
+    const tuftGeo = new THREE.ConeGeometry(0.2, 0.38, 4)
+    const tuftMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const tuftMesh = new THREE.InstancedMesh(tuftGeo, tuftMat, tufts.length)
+    applyInstances(tuftMesh, tufts, (p, d, i) => {
+      const s = 0.7 + p.rand * 0.8
+      d.position.set(p.x, 0.16 * s, p.z)
+      d.rotation.y = p.rand * Math.PI
+      d.scale.setScalar(s)
+      color.setHSL(0.12 + p.rand * 0.09, 0.3, 0.4 + ((p.rand * 7) % 1) * 0.09)
+      tuftMesh.setColorAt(i, color)
+    })
+
+    // --- 都のはての木立（東山の紅葉、野の松） ---
+    const wild = { x0: -78, x1: 78, z0: -78, z1: 78 }
+    const trees = scatterPoints(120, 522, wild, (_x, _z, h) => h > 0.45 && h < 4, miyakoRelief)
+    const trunkGeo = new THREE.CylinderGeometry(0.09, 0.16, 1.2, 5)
+    const trunkMat = new THREE.MeshLambertMaterial({ color: '#6e553c', flatShading: true })
+    const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, trees.length)
+    applyInstances(trunks, trees, (p, d) => {
+      const s = 0.9 + p.rand * 0.8
+      d.position.set(p.x, p.h + 0.55 * s, p.z)
+      d.rotation.y = p.rand * Math.PI * 2
+      d.scale.setScalar(s)
+    })
+    const pines = trees.filter(p => p.rand < 0.5)
+    const maples = trees.filter(p => p.rand >= 0.5)
+    const pineGeo = new THREE.ConeGeometry(0.9, 1.7, 6)
+    const pineMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const pineMesh = new THREE.InstancedMesh(pineGeo, pineMat, pines.length)
+    applyInstances(pineMesh, pines, (p, d, i) => {
+      const s = 0.9 + p.rand * 0.8
+      d.position.set(p.x, p.h + 1.45 * s, p.z)
+      d.rotation.y = p.rand * 6
+      d.scale.setScalar(s)
+      color.setHSL(0.32 + p.rand * 0.05, 0.3, 0.24 + ((p.rand * 11) % 1) * 0.07)
+      pineMesh.setColorAt(i, color)
+    })
+    const mapleGeo = new THREE.IcosahedronGeometry(0.95, 0)
+    const mapleMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const mapleMesh = new THREE.InstancedMesh(mapleGeo, mapleMat, maples.length)
+    applyInstances(mapleMesh, maples, (p, d, i) => {
+      const s = 0.9 + p.rand * 0.8
+      d.position.set(p.x, p.h + 1.5 * s, p.z)
+      d.rotation.set(p.rand * 3, p.rand * 6, p.rand * 2)
+      d.scale.setScalar(s)
+      color.setHSL(0.03 + p.rand * 0.07, 0.5, 0.32 + ((p.rand * 13) % 1) * 0.1)
+      mapleMesh.setColorAt(i, color)
+    })
+
+    // --- 条坊につらなる家並み（碁盤の目にそろう板屋根） ---
+    const rnd = mulberry32(816)
+    const homes: { x: number; z: number; h: number; r: number }[] = []
+    for (let gx = -74; gx <= 74; gx += 7.2) {
+      for (let gz = -76; gz <= 70; gz += 6.8) {
+        if (rnd() < 0.42) continue
+        const px = gx + (rnd() - 0.5) * 2.2
+        const pz = gz + (rnd() - 0.5) * 2.2
+        if (px > B.minX - 3.5 && px < B.maxX + 3.5 && pz > B.minZ - 3.5 && pz < B.maxZ + 3.5) continue // 場面そのもの
+        if (Math.abs(px) < 9.5) continue // 朱雀大路のつづき（北も南も）
+        if (px > 4 && px < 18 && pz > 20 && pz < 40) continue // 邸の敷地
+        const h = miyakoRelief(px, pz)
+        if (h > 1.6) continue // 山には建てない
+        homes.push({ x: px, z: pz, h, r: rnd() })
+      }
+    }
+    const bodyGeo = new THREE.BoxGeometry(5.2, 1.25, 3.5)
+    const bodyMat = new THREE.MeshLambertMaterial({ color: '#a4957a', flatShading: true })
+    const bodies = new THREE.InstancedMesh(bodyGeo, bodyMat, homes.length)
+    const roofGeo = new THREE.BoxGeometry(5.9, 0.4, 4.2)
+    const roofMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const roofs = new THREE.InstancedMesh(roofGeo, roofMat, homes.length)
+    const dummy = new THREE.Object3D()
+    homes.forEach((hm, i) => {
+      dummy.position.set(hm.x, hm.h + 0.62, hm.z)
+      dummy.rotation.set(0, 0, 0)
+      dummy.scale.setScalar(0.9 + hm.r * 0.3)
+      dummy.updateMatrix()
+      bodies.setMatrixAt(i, dummy.matrix)
+      dummy.position.y = hm.h + 1.42
+      dummy.updateMatrix()
+      roofs.setMatrixAt(i, dummy.matrix)
+      color.setHSL(0.08, 0.14, 0.3 + ((hm.r * 9) % 1) * 0.08)
+      roofs.setColorAt(i, color)
+    })
+    bodies.instanceMatrix.needsUpdate = true
+    roofs.instanceMatrix.needsUpdate = true
+
+    for (const m of [tuftMesh, pineMesh, mapleMesh, roofs]) {
+      if (m.instanceColor) m.instanceColor.needsUpdate = true
+    }
+    for (const m of [tuftMesh, trunks, pineMesh, mapleMesh, bodies, roofs]) {
+      m.raycast = () => {}
+      g.add(m)
+    }
+    return g
+  }, [])
+  return <primitive object={group} />
 }
 
 // 板屋（庶民の家）：石を置いた板葺屋根。道に向いて戸を開ける

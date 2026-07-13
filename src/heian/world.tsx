@@ -9,6 +9,8 @@ import { FLOORS, PILLARS, MISU, POND, ISLAND, STREAM, TREES, BOUNDS, SAND, KICHO
 import { toTexture, misuCanvas, kichoCanvas, groundCanvas, ringCanvas } from '../engine/textures'
 import { playerWorld, clampDt, koiCall } from '../game/live'
 import { resolveMove } from '../game/collide'
+import { buildGroundGeometry, scatterPoints, applyInstances, mulberry32 } from '../engine/procedural'
+import { teiRelief, teiGroundColor } from './terrain'
 
 const HIWADA = '#4f3d2f'   // 桧皮葺
 const RIDGE = '#3a2d22'
@@ -30,8 +32,9 @@ export function HeianWorld() {
   const walkTo = useGame(s => s.walkTo)
   const misuTex = useMemo(() => toTexture('misu', misuCanvas), [])
   const kichoTex = useMemo(() => toTexture('kicho', kichoCanvas), [])
-  const groundTex = useGroundTex('ground-tei', '#b3ab8d', '#a29a7e', '#c2b795', 26)
   const sandTex = useGroundTex('ground-sand', P.sand, '#d8cba6', '#f0e8d2', 7)
+  // 起伏と頂点色の地面（庭は平ら、塀のむこうに野と山が起きる）
+  const groundGeo = useMemo(() => buildGroundGeometry(170, 150, teiRelief, teiGroundColor), [])
 
   const onGround = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
@@ -44,10 +47,9 @@ export function HeianWorld() {
 
   return (
     <group>
-      {/* 地面（外周まで） */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, 0]} onClick={onGround}>
-        <planeGeometry args={[160, 160]} />
-        <meshLambertMaterial map={groundTex} />
+      {/* 地面（外周まで。低ポリの面ごとに色がゆらぐ） */}
+      <mesh geometry={groundGeo} onClick={onGround}>
+        <meshLambertMaterial vertexColors />
       </mesh>
       {/* 南庭の白砂（寝殿と池のあいだ） */}
       <mesh rotation-x={-Math.PI / 2} position={[SAND.x, 0.001, SAND.z]} onClick={onGround}>
@@ -147,8 +149,149 @@ export function HeianWorld() {
       {TREES.map((t, i) => (
         <Tree3D key={i} x={t.x} z={t.z} kind={t.kind} s={t.s} />
       ))}
+
+      {/* 庭の草株・塀のむこうの錦の山・都のつづきの家並み */}
+      <TeiVegetation />
     </group>
   )
+}
+
+// 庭と外の世界のにぎわい。種（seed）で決まる散布——毎朝、おなじ庭。
+// 遊びに関わる当たりは持たない（見た目だけ。raycast も外す）
+function TeiVegetation() {
+  const group = useMemo(() => {
+    const g = new THREE.Group()
+    const color = new THREE.Color()
+
+    // --- 庭の草株（白砂・池・床・流れ・灯籠・門前を避ける） ---
+    const inSand = (x: number, z: number) =>
+      Math.abs(x - SAND.x) < SAND.w / 2 + 0.6 && Math.abs(z - SAND.z) < SAND.d / 2 + 0.6
+    const nearStream = (x: number, z: number) => {
+      for (const s of STREAM) {
+        const dx = x - s.x, dz = z - s.z
+        const c = Math.cos(s.rot), sn = Math.sin(s.rot)
+        const u = dx * c - dz * sn
+        const v = -dx * sn - dz * c
+        if (Math.abs(u) < s.len / 2 + 0.5 && Math.abs(v) < s.w / 2 + 0.5) return true
+      }
+      return false
+    }
+    const tufts = scatterPoints(150, 71, { x0: BOUNDS.minX + 0.8, x1: BOUNDS.maxX - 0.8, z0: BOUNDS.minZ + 0.8, z1: BOUNDS.maxZ - 0.8 },
+      (x, z) => !blocked(x, z) && groundY(x, z) === 0 && !inSand(x, z) && !nearStream(x, z)
+        && LANTERNS.every(([lx, lz]) => (x - lx) ** 2 + (z - lz) ** 2 > 1.2)
+        && (x - ISLAND.x) ** 2 + (z - ISLAND.z) ** 2 > (ISLAND.r + 0.5) ** 2
+        && (x - 3) ** 2 + (z - 19) ** 2 > 9)
+    const tuftGeo = new THREE.ConeGeometry(0.22, 0.42, 4)
+    const tuftMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const tuftMesh = new THREE.InstancedMesh(tuftGeo, tuftMat, tufts.length)
+    applyInstances(tuftMesh, tufts, (p, d, i) => {
+      const s = 0.7 + p.rand * 0.9
+      d.position.set(p.x, 0.18 * s, p.z)
+      d.rotation.y = p.rand * Math.PI
+      d.scale.setScalar(s)
+      // 秋の野の色（黄緑〜枯れ色）
+      color.setHSL(0.13 + p.rand * 0.09, 0.32, 0.4 + ((p.rand * 7) % 1) * 0.1)
+      tuftMesh.setColorAt(i, color)
+    })
+
+    // --- 塀のむこうの木立（北山・東山の紅葉と松） ---
+    const wild = { x0: -78, x1: 78, z0: -78, z1: 78 }
+    const trees = scatterPoints(180, 415, wild, (_x, _z, h) => h > 0.5 && h < 5.6, teiRelief)
+    const trunkGeo = new THREE.CylinderGeometry(0.09, 0.16, 1.2, 5)
+    const trunkMat = new THREE.MeshLambertMaterial({ color: '#6e553c', flatShading: true })
+    const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, trees.length)
+    applyInstances(trunks, trees, (p, d) => {
+      const s = 0.9 + p.rand * 0.9
+      d.position.set(p.x, p.h + 0.55 * s, p.z)
+      d.rotation.y = p.rand * Math.PI * 2
+      d.scale.setScalar(s)
+    })
+    const pines = trees.filter(p => p.rand < 0.45)
+    const maples = trees.filter(p => p.rand >= 0.45)
+    const pineGeo = new THREE.ConeGeometry(0.9, 1.7, 6)
+    const pineMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const pineMesh = new THREE.InstancedMesh(pineGeo, pineMat, pines.length)
+    applyInstances(pineMesh, pines, (p, d, i) => {
+      const s = 0.9 + p.rand * 0.9
+      d.position.set(p.x, p.h + 1.45 * s, p.z)
+      d.rotation.y = p.rand * 6
+      d.scale.setScalar(s)
+      color.setHSL(0.32 + p.rand * 0.05, 0.3, 0.24 + ((p.rand * 11) % 1) * 0.07)
+      pineMesh.setColorAt(i, color)
+    })
+    const mapleGeo = new THREE.IcosahedronGeometry(0.95, 0)
+    const mapleMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const mapleMesh = new THREE.InstancedMesh(mapleGeo, mapleMat, maples.length)
+    applyInstances(mapleMesh, maples, (p, d, i) => {
+      const s = 0.9 + p.rand * 0.9
+      d.position.set(p.x, p.h + 1.5 * s, p.z)
+      d.rotation.set(p.rand * 3, p.rand * 6, p.rand * 2)
+      d.scale.setScalar(s)
+      // 紅葉の錦（朽葉〜紅）
+      color.setHSL(0.03 + p.rand * 0.07, 0.55, 0.32 + ((p.rand * 13) % 1) * 0.1)
+      mapleMesh.setColorAt(i, color)
+    })
+
+    // --- 山肌の岩 ---
+    const rocks = scatterPoints(26, 928, wild, (_x, _z, h) => h > 0.3 && h < 6, teiRelief)
+    const rockGeo = new THREE.IcosahedronGeometry(0.5, 0)
+    const rockMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const rockMesh = new THREE.InstancedMesh(rockGeo, rockMat, rocks.length)
+    applyInstances(rockMesh, rocks, (p, d, i) => {
+      const s = 0.6 + p.rand * 1.4
+      d.position.set(p.x, p.h + 0.12 * s, p.z)
+      d.rotation.set(p.rand * 4, p.rand * 8, p.rand * 5)
+      d.scale.set(s, s * (0.6 + p.rand * 0.5), s)
+      color.setHSL(0.1, 0.08, 0.46 + ((p.rand * 11) % 1) * 0.12)
+      rockMesh.setColorAt(i, color)
+    })
+
+    // --- 南と西につづく都の家並み（条坊にそろう板屋根） ---
+    const rnd = mulberry32(603)
+    const homes: { x: number; z: number; h: number; r: number }[] = []
+    const tryHome = (gx: number, gz: number) => {
+      if (rnd() < 0.42) return
+      const px = gx + (rnd() - 0.5) * 2.4
+      const pz = gz + (rnd() - 0.5) * 2.2
+      if (Math.abs(px - 3) < 5.5) return // 棟門から南へのびる道すじ
+      const h = teiRelief(px, pz)
+      if (h > 1.7) return // 山には家を建てない
+      homes.push({ x: px, z: pz, h, r: rnd() })
+    }
+    for (let gx = -72; gx <= 72; gx += 7.4) for (let gz = 27; gz <= 66; gz += 6.6) tryHome(gx, gz)
+    for (let gx = -70; gx <= -33; gx += 7.4) for (let gz = -10; gz <= 20; gz += 6.6) tryHome(gx, gz)
+    const bodyGeo = new THREE.BoxGeometry(5.2, 1.25, 3.5)
+    const bodyMat = new THREE.MeshLambertMaterial({ color: '#a4957a', flatShading: true })
+    const bodies = new THREE.InstancedMesh(bodyGeo, bodyMat, homes.length)
+    const roofGeo = new THREE.BoxGeometry(5.9, 0.4, 4.2)
+    const roofMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const roofs = new THREE.InstancedMesh(roofGeo, roofMat, homes.length)
+    const dummy = new THREE.Object3D()
+    homes.forEach((hm, i) => {
+      dummy.position.set(hm.x, hm.h + 0.62, hm.z)
+      dummy.rotation.set(0, 0, 0)
+      dummy.scale.setScalar(0.9 + hm.r * 0.3)
+      dummy.updateMatrix()
+      bodies.setMatrixAt(i, dummy.matrix)
+      dummy.position.y = hm.h + 1.42
+      dummy.updateMatrix()
+      roofs.setMatrixAt(i, dummy.matrix)
+      color.setHSL(0.08, 0.14, 0.3 + ((hm.r * 9) % 1) * 0.08)
+      roofs.setColorAt(i, color)
+    })
+    bodies.instanceMatrix.needsUpdate = true
+    roofs.instanceMatrix.needsUpdate = true
+
+    for (const m of [tuftMesh, pineMesh, mapleMesh, rockMesh, roofs]) {
+      if (m.instanceColor) m.instanceColor.needsUpdate = true
+    }
+    for (const m of [tuftMesh, trunks, pineMesh, mapleMesh, rockMesh, bodies, roofs]) {
+      m.raycast = () => {} // 見た目だけ：歩き先のタップを妨げない
+      g.add(m)
+    }
+    return g
+  }, [])
+  return <primitive object={group} />
 }
 
 // 中に入ると透ける屋根（吹抜屋台のならわし）

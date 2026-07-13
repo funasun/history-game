@@ -1,9 +1,15 @@
 // 鎌倉の武家の都の3D。時代パックの World / LandmarkMesh として供する。
 // 山にかこまれ、南は相模の海。若宮大路が海から八幡宮へまっすぐのびる。
+// 山は起伏の地形そのもの（HILLS のデータどおりに立つ）、海は波のうねる面。
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useGame } from '../game/store'
 import { P } from './palette'
-import { SEA_Z, BEACH, OMICHI, HILLS, TREES, blocked } from './layout'
+import { SEA_Z, BEACH, OMICHI, TREES, BED, SPAWN, blocked } from './layout'
+import { buildGroundGeometry, scatterPoints, applyInstances, smoothstep } from '../engine/procedural'
+import { hamaRelief, hamaGroundColor } from './terrain'
 
 export function KamakuraWorld() {
   const walkTo = useGame(s => s.walkTo)
@@ -16,13 +22,14 @@ export function KamakuraWorld() {
   const roadD = BEACH.z0 - OMICHI.z0
   const beachZc = (BEACH.z0 + BEACH.z1) / 2
   const beachD = BEACH.z1 - BEACH.z0
+  // 起伏と頂点色の地面（谷戸は平ら、三方に山が立ち、南は海底へ沈む）
+  const groundGeo = useMemo(() => buildGroundGeometry(240, 210, hamaRelief, hamaGroundColor), [])
 
   return (
     <group>
-      {/* 地面（土） */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.02, 0]} onClick={onGround}>
-        <planeGeometry args={[200, 200]} />
-        <meshLambertMaterial color={P.earth} />
+      {/* 地面（土・山肌・渚から海の底まで） */}
+      <mesh geometry={groundGeo} onClick={onGround}>
+        <meshLambertMaterial vertexColors />
       </mesh>
 
       {/* 若宮大路（海から八幡宮へ） */}
@@ -38,40 +45,23 @@ export function KamakuraWorld() {
         </mesh>
       ))}
 
-      {/* 浜（砂） */}
+      {/* 浜（砂）。歩ける幅だけ——その外は地形の砂色がつづく */}
       <mesh rotation-x={-Math.PI / 2} position={[0, 0.004, beachZc]} onClick={onGround}>
-        <planeGeometry args={[120, beachD]} />
+        <planeGeometry args={[44, beachD]} />
         <meshLambertMaterial color={P.sand} />
       </mesh>
 
-      {/* 相模の海 */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, -0.01, SEA_Z + 45]}>
-        <planeGeometry args={[240, 90]} />
-        <meshLambertMaterial color={P.sea} />
-      </mesh>
-      {/* 波がしら */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.006, SEA_Z]} raycast={() => null}>
-        <planeGeometry args={[120, 1.3]} />
+      {/* 相模の海（波がうねる） */}
+      <Sea />
+      {/* 波がしら（水際線 z≈13.8 を覆って、寄せ返しに見せる） */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, SEA_Z + 0.8]} raycast={() => null}>
+        <planeGeometry args={[52, 1.3]} />
         <meshLambertMaterial color={P.seaFoam} />
       </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.006, SEA_Z + 3]} raycast={() => null}>
-        <planeGeometry args={[120, 0.7]} />
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, SEA_Z + 3]} raycast={() => null}>
+        <planeGeometry args={[52, 0.7]} />
         <meshLambertMaterial color={P.seaFoam} />
       </mesh>
-
-      {/* 囲む山（塀のかわり） */}
-      {HILLS.map((h, i) => (
-        <group key={i} position={[h.x, 0, h.z]} raycast={() => null}>
-          <mesh scale={[h.r, h.h, h.r]} position={[0, 0, 0]}>
-            <sphereGeometry args={[1, 20, 14]} />
-            <meshLambertMaterial color={P.hill} />
-          </mesh>
-          <mesh scale={[h.r * 0.6, h.h * 1.15, h.r * 0.6]} position={[h.r * 0.15, 0, h.r * 0.1]}>
-            <sphereGeometry args={[1, 18, 12]} />
-            <meshLambertMaterial color={P.hillDark} />
-          </mesh>
-        </group>
-      ))}
 
       {/* 大鳥居（大路の上・二の鳥居のおもかげ） */}
       <Torii x={OMICHI.x} z={5} scale={1.15} />
@@ -80,8 +70,121 @@ export function KamakuraWorld() {
       {TREES.map((t, i) => (
         <KTree key={i} x={t.x} z={t.z} kind={t.kind} s={t.s} />
       ))}
+
+      {/* 谷戸の草・山の松原・磯の岩 */}
+      <KamakuraVegetation />
     </group>
   )
+}
+
+// 相模の海。渚は静かに、沖ほど大きくうねる
+function Sea() {
+  const mesh = useRef<THREE.Mesh>(null!)
+  const geometry = useMemo(() => {
+    const g = new THREE.PlaneGeometry(240, 92, 96, 36)
+    g.rotateX(-Math.PI / 2)
+    return g
+  }, [])
+  const base = useMemo(() => Float32Array.from(geometry.attributes.position.array), [geometry])
+  useFrame(({ clock }) => {
+    const t = clock.elapsedTime
+    const pos = mesh.current.geometry.attributes.position as THREE.BufferAttribute
+    for (let i = 0; i < pos.count; i++) {
+      const x = base[i * 3]
+      const wz = base[i * 3 + 2] + SEA_Z + 45 // 世界座標の z
+      // 渚では波をゼロに——砂と海の刺し違い（波打ち際の鋸歯）を出さない
+      const amp = 0.26 * smoothstep(15, 32, wz)
+      pos.setY(i, (
+        Math.sin(x * 0.13 + t * 1.2) * 0.5 +
+        Math.sin(wz * 0.15 + t * 0.8) * 0.35 +
+        Math.sin((x + wz) * 0.05 + t * 0.45) * 0.3
+      ) * amp)
+    }
+    pos.needsUpdate = true
+  })
+  return (
+    // 海面はわずかに沈めて敷く。渚では砂の下に隠れ、地形が海底へ下る線（z≈13.8）が
+    // そのまま水際線になる——重ね面どうしのちらつきをなくす
+    <mesh ref={mesh} geometry={geometry} position={[0, -0.05, SEA_Z + 45]} raycast={() => null}>
+      <meshLambertMaterial color={P.sea} transparent opacity={0.82} />
+    </mesh>
+  )
+}
+
+// 谷戸の草、山肌の松原、磯と岬の岩。種で決まる散布——おなじ鎌倉の五日。
+// 見た目だけ（当たりなし・raycast なし）
+function KamakuraVegetation() {
+  const group = useMemo(() => {
+    const g = new THREE.Group()
+    const color = new THREE.Color()
+
+    // --- 谷戸の草（大路・浜・宿・木のきわを避ける） ---
+    const tufts = scatterPoints(85, 246, { x0: -21.4, x1: 21.4, z0: -19.4, z1: 7.8 },
+      (x, z) => !blocked(x, z) && Math.abs(x - OMICHI.x) > OMICHI.w / 2 + 0.9
+        && (x - BED.x) ** 2 + (z - BED.z) ** 2 > 3.2
+        && (x - SPAWN[0]) ** 2 + (z - SPAWN[1]) ** 2 > 2.2
+        && TREES.every(tr => (x - tr.x) ** 2 + (z - tr.z) ** 2 > 1))
+    const tuftGeo = new THREE.ConeGeometry(0.2, 0.38, 4)
+    const tuftMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const tuftMesh = new THREE.InstancedMesh(tuftGeo, tuftMat, tufts.length)
+    applyInstances(tuftMesh, tufts, (p, d, i) => {
+      const s = 0.7 + p.rand * 0.8
+      d.position.set(p.x, 0.16 * s, p.z)
+      d.rotation.y = p.rand * Math.PI
+      d.scale.setScalar(s)
+      color.setHSL(0.2 + p.rand * 0.08, 0.3, 0.34 + ((p.rand * 7) % 1) * 0.08)
+      tuftMesh.setColorAt(i, color)
+    })
+
+    // --- 山肌の松原（岬の松も） ---
+    const wild = { x0: -110, x1: 110, z0: -95, z1: 30 }
+    const pinesPts = scatterPoints(170, 359, wild, (_x, _z, h) => h > 0.7 && h < 7, hamaRelief)
+    const trunkGeo = new THREE.CylinderGeometry(0.09, 0.16, 1.2, 5)
+    const trunkMat = new THREE.MeshLambertMaterial({ color: '#5d4a34', flatShading: true })
+    const trunks = new THREE.InstancedMesh(trunkGeo, trunkMat, pinesPts.length)
+    applyInstances(trunks, pinesPts, (p, d) => {
+      const s = 0.9 + p.rand * 0.9
+      d.position.set(p.x, p.h + 0.55 * s, p.z)
+      d.rotation.y = p.rand * Math.PI * 2
+      d.scale.setScalar(s)
+    })
+    const pineGeo = new THREE.ConeGeometry(0.95, 1.75, 6)
+    const pineMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const pineMesh = new THREE.InstancedMesh(pineGeo, pineMat, pinesPts.length)
+    applyInstances(pineMesh, pinesPts, (p, d, i) => {
+      const s = 0.9 + p.rand * 0.9
+      d.position.set(p.x, p.h + 1.45 * s, p.z)
+      d.rotation.y = p.rand * 6
+      d.scale.setScalar(s)
+      color.setHSL(0.33 + p.rand * 0.05, 0.32, 0.2 + ((p.rand * 11) % 1) * 0.08)
+      pineMesh.setColorAt(i, color)
+    })
+
+    // --- 岩（山肌と、渚の磯） ---
+    const rocks = scatterPoints(45, 771, wild,
+      (_x, z, h) => (h > 0.25 && h < 8) || (z > 12 && h > -0.3 && h < 0.25), hamaRelief)
+    const rockGeo = new THREE.IcosahedronGeometry(0.5, 0)
+    const rockMat = new THREE.MeshLambertMaterial({ flatShading: true })
+    const rockMesh = new THREE.InstancedMesh(rockGeo, rockMat, rocks.length)
+    applyInstances(rockMesh, rocks, (p, d, i) => {
+      const s = 0.6 + p.rand * 1.6
+      d.position.set(p.x, p.h + 0.12 * s, p.z)
+      d.rotation.set(p.rand * 4, p.rand * 8, p.rand * 5)
+      d.scale.set(s, s * (0.6 + p.rand * 0.5), s)
+      color.setHSL(0.58, 0.04, 0.4 + ((p.rand * 11) % 1) * 0.12)
+      rockMesh.setColorAt(i, color)
+    })
+
+    for (const m of [tuftMesh, pineMesh, rockMesh]) {
+      if (m.instanceColor) m.instanceColor.needsUpdate = true
+    }
+    for (const m of [tuftMesh, trunks, pineMesh, rockMesh]) {
+      m.raycast = () => {}
+      g.add(m)
+    }
+    return g
+  }, [])
+  return <primitive object={group} />
 }
 
 // 松と紅葉（鎌倉は日ごとの色替えはせず、静かに）
