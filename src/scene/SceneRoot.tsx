@@ -86,6 +86,10 @@ function Atmosphere() {
     else scene.background.set(col)
     if (!scene.fog) scene.fog = new THREE.Fog(col, 34, 70)
     else (scene.fog as THREE.Fog).color.set(col)
+    // 俯瞰のあいだは霞を遠のける——高く昇っても地面が乳白にのまれない
+    const fog = scene.fog as THREE.Fog
+    fog.near = 34 + cam.bird * 30
+    fog.far = 70 + cam.bird * 60
   })
   return null
 }
@@ -173,9 +177,10 @@ function CameraRig() {
   const camera = useThree(s => s.camera)
   const size = useThree(s => s.size)
   useFrame(() => {
-    // 見まわし（45°刻み）と引きへ、なめらかに寄る
+    // 見まわし（45°刻み）・引き・俯瞰へ、なめらかに寄る
     cam.yaw += (cam.yawGoal - cam.yaw) * 0.08
     cam.dist += (cam.distGoal - cam.dist) * 0.08
+    cam.bird += (cam.birdGoal - cam.bird) * 0.06
     // 場面替え（遠くへ跳んだ）なら追いかけず、すぐ切り替える
     if (look.distanceTo(playerWorld) > 18) look.copy(playerWorld)
     else look.lerp(playerWorld, 0.07)
@@ -183,12 +188,16 @@ function CameraRig() {
     // 縦長・細身になるほど k を上げて引き、横方向の見切れを防ぐ。
     const aspect = size.width / Math.max(1, size.height)
     const k = Math.min(1.7, Math.max(1, 1.4 / aspect)) * cam.dist
+    // 俯瞰（bird=1）では水平の腕を縮めて高さをあげ、ほぼ真上から見おろす。
+    // 足す高さは縦画面の引き係数を掛けない——掛けると細長い端末で霞の奥まで昇ってしまう
+    const b = cam.bird
+    const arm = 11.2 * k * (1 - 0.76 * b)
     camera.position.set(
-      look.x + Math.sin(cam.yaw) * 11.2 * k,
-      look.y + 7.6 * k,
-      look.z + Math.cos(cam.yaw) * 11.2 * k,
+      look.x + Math.sin(cam.yaw) * arm,
+      look.y + 7.6 * k + 14 * b * cam.dist,
+      look.z + Math.cos(cam.yaw) * arm,
     )
-    camera.lookAt(look.x, look.y + 1.0, look.z)
+    camera.lookAt(look.x, look.y + 1.0 - b, look.z)
   })
   return null
 }

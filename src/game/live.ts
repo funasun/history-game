@@ -11,13 +11,16 @@ export const heldKeys = new Set<string>()
 export const drive = { on: false }
 
 // カメラの向きと引き。yawGoal/distGoal へ毎フレーム緩やかに寄る。
-// 回転は45°刻み（⟲⟳ボタン・q/eキー）、引きはピンチ/ホイールで連続。
-export const cam = { yaw: 0, dist: 1, yawGoal: 0, distGoal: 1 }
+// 回転は45°刻み（⟲⟳ボタン・q/eキー）、引きはボタン/ホイールで連続。
+// bird は俯瞰（0=ふだんの斜め見おろし、1=空の上から見わたす）
+export const cam = { yaw: 0, dist: 1, yawGoal: 0, distGoal: 1, bird: 0, birdGoal: 0 }
 export function rotateCam(dir: 1 | -1) { cam.yawGoal += dir * Math.PI / 4 }
 export function zoomCam(delta: number) {
   cam.distGoal = Math.min(1.6, Math.max(0.55, cam.distGoal + delta))
 }
-export function resetCam() { cam.yaw = 0; cam.yawGoal = 0; cam.dist = 1; cam.distGoal = 1 }
+// 空へ視点をあげて庭ぜんたいを見わたす。もう一度で地上へ
+export function toggleBird() { cam.birdGoal = cam.birdGoal > 0.5 ? 0 : 1 }
+export function resetCam() { cam.yaw = 0; cam.yawGoal = 0; cam.dist = 1; cam.distGoal = 1; cam.bird = 0; cam.birdGoal = 0 }
 
 // タップ移動の目印（地面に立つ小さな波紋）。t は残り時間
 export const tapMark = { x: 0, z: 0, t: 0 }
@@ -31,8 +34,11 @@ export function clampDt(dt: number): number {
   return Math.min(dt, 0.1)
 }
 
-// 開発時のみ、当たり判定の検証用にプレイヤー位置を覗けるようにする（本番ビルドでは消える）
-if (import.meta.env.DEV) (globalThis as Record<string, unknown>).__pw = playerWorld
+// 開発時のみ、当たり判定・カメラの検証用に内部を覗けるようにする（本番ビルドでは消える）
+if (import.meta.env.DEV) {
+  ;(globalThis as Record<string, unknown>).__pw = playerWorld
+  ;(globalThis as Record<string, unknown>).__cam = cam
+}
 
 const DIRS: Record<string, [number, number]> = {
   ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],

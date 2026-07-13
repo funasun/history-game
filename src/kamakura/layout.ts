@@ -44,8 +44,9 @@ export const TREES: TreeDef[] = [
   { x: 9.5, z: -13.5, kind: 'maple', s: 1.0 },
   { x: -16, z: -14, kind: 'pine', s: 1.2 },
   { x: 16, z: -14, kind: 'pine', s: 1.2 },
-  { x: -15, z: 17, kind: 'pine', s: 1.1 },
-  { x: 15, z: 17, kind: 'pine', s: 1.1 },
+  // 磯の松は渚（SEA_Z=13）より陸側の砂浜に。z=17 は海のなかで幹が水没して見えた
+  { x: -16, z: 10.8, kind: 'pine', s: 1.1 },
+  { x: 15.5, z: 10.4, kind: 'pine', s: 1.1 },
   { x: -19, z: -10, kind: 'pine', s: 1.2 },
   { x: 19.5, z: 9, kind: 'pine', s: 1.15 },
 ]

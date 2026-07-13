@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useGame } from '../store'
 import { ERAS } from '../eras'
 import { getPack } from '../pack'
-import { rotateCam } from '../live'
+import { rotateCam, zoomCam, toggleBird } from '../live'
 import { washiDataURL, flowerDataURL, letterDataURL } from '../../engine/textures'
 import { hasSave } from '../../engine/save'
 
@@ -190,6 +190,9 @@ export function Hud() {
       <div className="hud-cam">
         <button style={washi()} onClick={() => rotateCam(1)} aria-label="左へ見まわす">⟲</button>
         <button style={washi()} onClick={() => rotateCam(-1)} aria-label="右へ見まわす">⟳</button>
+        <button style={washi()} onClick={() => zoomCam(-0.18)} aria-label="近くへ寄る">＋</button>
+        <button style={washi()} onClick={() => zoomCam(0.18)} aria-label="遠くへ引く">－</button>
+        <button style={washi()} onClick={toggleBird} aria-label="空から見わたす（もう一度で地上へ）">空</button>
       </div>
     </>
   )

@@ -116,6 +116,42 @@ export function buildGroundGeometry(
   return geo
 }
 
+// 折れ線の芯にそって幅 width の帯を張る（遣水・小径など）。
+// 別々の板を並べると角で切れ目が出る——各点で両どなりの向きを平均して
+// 左右へ半幅ずらし、一本のつづいた帯にする。width は関数なら点ごとに変えられる
+export function buildRibbonGeometry(
+  pts: { x: number; z: number }[],
+  width: number | ((i: number, n: number) => number),
+  y = 0,
+): THREE.BufferGeometry {
+  const n = pts.length
+  const positions = new Float32Array(n * 2 * 3)
+  for (let i = 0; i < n; i++) {
+    const a = pts[Math.max(0, i - 1)]
+    const b = pts[Math.min(n - 1, i + 1)]
+    let dx = b.x - a.x, dz = b.z - a.z
+    const len = Math.hypot(dx, dz) || 1
+    dx /= len; dz /= len
+    const w = (typeof width === 'function' ? width(i, n) : width) / 2
+    positions[i * 6] = pts[i].x - dz * w
+    positions[i * 6 + 1] = y
+    positions[i * 6 + 2] = pts[i].z + dx * w
+    positions[i * 6 + 3] = pts[i].x + dz * w
+    positions[i * 6 + 4] = y
+    positions[i * 6 + 5] = pts[i].z - dx * w
+  }
+  const indices: number[] = []
+  for (let i = 0; i < n - 1; i++) {
+    const l0 = i * 2, r0 = i * 2 + 1, l1 = i * 2 + 2, r1 = i * 2 + 3
+    indices.push(l0, l1, r0, r0, l1, r1) // 上向き（+y）の巻き
+  }
+  const geo = new THREE.BufferGeometry()
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
+  geo.setIndex(indices)
+  geo.computeVertexNormals()
+  return geo
+}
+
 // ---- 散布 ----
 
 export interface ScatterPoint { x: number; z: number; h: number; rand: number }

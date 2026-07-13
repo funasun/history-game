@@ -23,7 +23,7 @@ export function MiyakoWorld() {
   const roadTex = useMemo(() => {
     const t = toTexture('ground-road', () => groundCanvas('#c9bc9c', '#b9ac8c', '#d6caa8'))
     t.wrapS = t.wrapT = THREE.RepeatWrapping
-    t.repeat.set(4, 15)
+    t.repeat.set(4, 23) // 延長後の路面長（84）に合わせて目の細かさを保つ
     return t
   }, [])
 
@@ -35,8 +35,11 @@ export function MiyakoWorld() {
 
   const B = MIYAKO_BOUNDS
   const roadW = ROAD.x1 - ROAD.x0
-  const roadLen = B.maxZ - B.minZ
-  const roadZ = (B.maxZ + B.minZ) / 2
+  // 大路は場面の端でぷつりと切らない——羅城門の南も北の住まいの区も、
+  // 地形のふくらみ（miyakoRelief は端から8で立ちあがる）にのみ込まれるまで延ばす
+  const roadZ0 = B.minZ - 16, roadZ1 = B.maxZ + 14
+  const roadLen = roadZ1 - roadZ0
+  const roadZ = (roadZ0 + roadZ1) / 2
 
   return (
     <group>

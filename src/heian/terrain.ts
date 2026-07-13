@@ -55,12 +55,16 @@ export function miyakoRelief(x: number, z: number): number {
   const d = rectDist(x, z, MIYAKO)
   if (d <= 0) return GROUND_Y
   const ramp = smoothstep(8, 30, d)
-  if (ramp <= 0) return GROUND_Y
+  // 大路の南北のはて：野がゆるくもりあがる峠。道はこの坂にのまれて消える
+  // （平らな野に道面がすっと沈むと切り口が線に見える——見える傾斜で覆って絶つ）
+  const crest = (0.9 * smoothstep(-42, -58, z) + 0.8 * smoothstep(26, 40, z))
+    * smoothstep(16, 6, Math.abs(x))
+  if (ramp <= 0) return GROUND_Y + crest
   // 東（+x）に東山、西はひくい野。南（羅城門の外）はひらけた田野のうねり
   const bias = 0.5 + 0.85 * smoothstep(20, 55, x) + 0.3 * smoothstep(-40, -70, z)
   const base = fbm(x * 0.03 + 1.9, z * 0.03 + 6.4, 4)
   const detail = fbm(x * 0.08 + 8.1, z * 0.08 + 3.3, 3)
-  return GROUND_Y + ramp * bias * (base * 4.6 + detail * 1.1)
+  return GROUND_Y + ramp * bias * (base * 4.6 + detail * 1.1) + crest
 }
 
 const M_SOIL_A = new THREE.Color('#b0a684')

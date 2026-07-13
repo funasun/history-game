@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useGame } from './game/store'
-import { heldKeys, isMoveKey, drive, rotateCam, zoomCam } from './game/live'
+import { heldKeys, isMoveKey, drive, rotateCam, zoomCam, toggleBird } from './game/live'
 import { SceneRoot } from './scene/SceneRoot'
 import { Tint, DialogueBox, OutfitChoice, LetterView, Toast, PageToast, Hud, TouchPrompt, Home, Title, Prologue, Guide, Epilogue, HintRibbon, Fade } from './game/ui/Ui'
 import { DiaryNight, DiaryBook } from './game/ui/Diary'
@@ -68,10 +68,20 @@ export default function App() {
         return
       }
       const s = useGame.getState()
-      // q/e で見まわす（roam中のみ）
+      // q/e で見まわす、z/x で寄る・引く、c で俯瞰（roam中のみ）
       if (s.mode === 'roam' && (key === 'q' || key === 'e')) {
         e.preventDefault()
         if (!e.repeat) rotateCam(key === 'q' ? 1 : -1)
+        return
+      }
+      if (s.mode === 'roam' && (key === 'z' || key === 'x')) {
+        e.preventDefault()
+        zoomCam(key === 'z' ? -0.12 : 0.12)
+        return
+      }
+      if (s.mode === 'roam' && key === 'c') {
+        e.preventDefault()
+        if (!e.repeat) toggleBird()
         return
       }
       if (key === ' ' || key === 'Enter') {

@@ -8,7 +8,7 @@ import type { ThreeEvent } from '@react-three/fiber'
 import { useGame } from '../game/store'
 import { P } from './palette'
 import { SEA_Z, BEACH, OMICHI, TREES, BED, SPAWN, blocked } from './layout'
-import { buildGroundGeometry, scatterPoints, applyInstances, smoothstep } from '../engine/procedural'
+import { buildGroundGeometry, buildRibbonGeometry, scatterPoints, applyInstances, smoothstep } from '../engine/procedural'
 import { hamaRelief, hamaGroundColor } from './terrain'
 
 export function KamakuraWorld() {
@@ -24,6 +24,18 @@ export function KamakuraWorld() {
   const beachD = BEACH.z1 - BEACH.z0
   // 起伏と頂点色の地面（谷戸は平ら、三方に山が立ち、南は海底へ沈む）
   const groundGeo = useMemo(() => buildGroundGeometry(240, 210, hamaRelief, hamaGroundColor), [])
+  // 泡の帯：ゆるくうねる芯＋両端へ幅を絞るリボン（2本、位相をずらす）
+  const foamGeos = useMemo(() => [
+    { z: SEA_Z + 0.8, w: 1.3, f: 0.31, p: 1.7, a: 0.3 },
+    { z: SEA_Z + 3.0, w: 0.7, f: 0.22, p: 4.2, a: 0.5 },
+  ].map(({ z, w, f, p, a }) => {
+    const pts = Array.from({ length: 15 }, (_, i) => {
+      const x = -27 + i * (54 / 14)
+      return { x, z: z + Math.sin(x * f + p) * a }
+    })
+    return buildRibbonGeometry(pts, i =>
+      w * Math.max(0.05, smoothstep(0, 2.2, i) * smoothstep(14, 11.8, i) * (0.8 + 0.25 * Math.sin(i * 2.1) ** 2)))
+  }), [])
 
   return (
     <group>
@@ -53,15 +65,14 @@ export function KamakuraWorld() {
 
       {/* 相模の海（波がうねる） */}
       <Sea />
-      {/* 波がしら（水際線 z≈13.8 を覆って、寄せ返しに見せる） */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, SEA_Z + 0.8]} raycast={() => null}>
-        <planeGeometry args={[52, 1.3]} />
-        <meshLambertMaterial color={P.seaFoam} />
-      </mesh>
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0.06, SEA_Z + 3]} raycast={() => null}>
-        <planeGeometry args={[52, 0.7]} />
-        <meshLambertMaterial color={P.seaFoam} />
-      </mesh>
+      {/* 波がしら（水際線 z≈13.8 を覆って、寄せ返しに見せる）。
+          まっすぐな長方形だと帯の両端がぷつりと切れて見えるので、
+          リボンでかすかにうねらせ、端は幅を0へ絞って波が引くように消す */}
+      {foamGeos.map((g, i) => (
+        <mesh key={i} geometry={g} position-y={0.06} raycast={() => null}>
+          <meshLambertMaterial color={P.seaFoam} />
+        </mesh>
+      ))}
 
       {/* 大鳥居（大路の上・二の鳥居のおもかげ） */}
       <Torii x={OMICHI.x} z={5} scale={1.15} />

@@ -155,6 +155,15 @@ export function Player() {
     const s = useGame.getState()
     const { groundY } = getArea()
     const p = pos.current
+    // 開発時のみ：検証用の瞬間移動（window.__tp = [x, z]）。翌フレームでカメラも切替わる
+    if (import.meta.env.DEV) {
+      const g = globalThis as Record<string, unknown>
+      const tp = g.__tp as [number, number] | undefined
+      if (tp) {
+        p.x = tp[0]; p.z = tp[1]; g.__tp = undefined
+        useGame.setState({ playerPos: [p.x, p.z], target: null, pending: null })
+      }
+    }
     const t = s.t
     // 歩いていく先（pending）の触れ円に入ったら、到着を待たずその場でひらく＝反応を軽く
     let fired = false

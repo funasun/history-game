@@ -5,11 +5,11 @@ import * as THREE from 'three'
 import type { ThreeEvent } from '@react-three/fiber'
 import { useGame } from '../game/store'
 import { P } from './palette'
-import { FLOORS, PILLARS, MISU, POND, ISLAND, STREAM, TREES, BOUNDS, SAND, KICHO, LANTERNS, BRIDGE, bridgeY, blocked, groundY } from './layout'
+import { FLOORS, PILLARS, MISU, POND, ISLAND, STREAM_PATH, STREAM_W, TREES, BOUNDS, SAND, KICHO, LANTERNS, BRIDGE, bridgeY, blocked, groundY } from './layout'
 import { toTexture, misuCanvas, kichoCanvas, groundCanvas, ringCanvas } from '../engine/textures'
 import { playerWorld, clampDt, koiCall } from '../game/live'
 import { resolveMove } from '../game/collide'
-import { buildGroundGeometry, scatterPoints, applyInstances, mulberry32 } from '../engine/procedural'
+import { buildGroundGeometry, buildRibbonGeometry, scatterPoints, applyInstances, mulberry32 } from '../engine/procedural'
 import { teiRelief, teiGroundColor } from './terrain'
 
 const HIWADA = '#4f3d2f'   // 桧皮葺
@@ -35,6 +35,16 @@ export function HeianWorld() {
   const sandTex = useGroundTex('ground-sand', P.sand, '#d8cba6', '#f0e8d2', 7)
   // 起伏と頂点色の地面（庭は平ら、塀のむこうに野と山が起きる）
   const groundGeo = useMemo(() => buildGroundGeometry(170, 150, teiRelief, teiGroundColor), [])
+  // 遣水は一本のリボン（下流ほどわずかに広がる）。塀の下から池の水面下まで切れ目なし
+  const streamGeo = useMemo(() =>
+    buildRibbonGeometry(STREAM_PATH, (i, n) => STREAM_W * (0.72 + 0.36 * i / (n - 1))), [])
+  // 棟門の外へつづく小路（都大路への道すじ）。門から南へ、末は野に紛れて細り消える。
+  // 南の野はせり上がりがゆるく、幅のあるまま地面にもぐると切り口が四角く見える——
+  // どこで地面と交わっても絵になるよう、門を離れた先端まで滑らかに先細りさせる
+  const gatePathGeo = useMemo(() => buildRibbonGeometry([
+    { x: 3, z: 18.6 }, { x: 3.15, z: 22 }, { x: 2.75, z: 26 },
+    { x: 3.2, z: 31 }, { x: 2.8, z: 36 }, { x: 3.05, z: 39 }, { x: 3.1, z: 42 },
+  ], (i, n) => Math.max(0.08, 2.3 * Math.pow(1 - i / (n - 1), 0.85))), [])
 
   const onGround = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation()
@@ -85,14 +95,15 @@ export function HeianWorld() {
       <KemariBall />
       {/* 南の棟門（都大路への出入口） */}
       <Munamon />
+      {/* 門の外の小路（塀の下をくぐって南の都へ。行き止まりに見せない） */}
+      <mesh geometry={gatePathGeo} position-y={0.005}>
+        <meshLambertMaterial color="#c2b592" />
+      </mesh>
 
-      {/* 遣水 */}
-      {STREAM.map((s, i) => (
-        <mesh key={i} rotation-x={-Math.PI / 2} rotation-z={s.rot} position={[s.x, 0.015, s.z]}>
-          <planeGeometry args={[s.len, s.w]} />
-          <meshLambertMaterial color={P.water} />
-        </mesh>
-      ))}
+      {/* 遣水（東の塀の下から白砂を縫って池へ——切れ目のない一本の流れ） */}
+      <mesh geometry={streamGeo} position-y={0.015}>
+        <meshLambertMaterial color={P.water} />
+      </mesh>
 
       {/* 床（寝殿・対屋・渡殿） */}
       {FLOORS.map((f, i) => (
@@ -167,12 +178,11 @@ function TeiVegetation() {
     const inSand = (x: number, z: number) =>
       Math.abs(x - SAND.x) < SAND.w / 2 + 0.6 && Math.abs(z - SAND.z) < SAND.d / 2 + 0.6
     const nearStream = (x: number, z: number) => {
-      for (const s of STREAM) {
-        const dx = x - s.x, dz = z - s.z
-        const c = Math.cos(s.rot), sn = Math.sin(s.rot)
-        const u = dx * c - dz * sn
-        const v = -dx * sn - dz * c
-        if (Math.abs(u) < s.len / 2 + 0.5 && Math.abs(v) < s.w / 2 + 0.5) return true
+      for (let i = 0; i < STREAM_PATH.length - 1; i++) {
+        const a = STREAM_PATH[i], b = STREAM_PATH[i + 1]
+        const dx = b.x - a.x, dz = b.z - a.z
+        const t = Math.min(1, Math.max(0, ((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz)))
+        if (Math.hypot(x - a.x - dx * t, z - a.z - dz * t) < STREAM_W / 2 + 0.5) return true
       }
       return false
     }
