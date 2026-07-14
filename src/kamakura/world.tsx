@@ -10,6 +10,7 @@ import { P } from './palette'
 import { SEA_Z, BEACH, OMICHI, TREES, BED, SPAWN, blocked } from './layout'
 import { buildGroundGeometry, buildRibbonGeometry, scatterPoints, applyInstances, smoothstep } from '../engine/procedural'
 import { hamaRelief, hamaGroundColor } from './terrain'
+import { MountedArcher, KWalker } from './liveActors'
 
 export function KamakuraWorld() {
   const walkTo = useGame(s => s.walkTo)
@@ -84,6 +85,94 @@ export function KamakuraWorld() {
 
       {/* 谷戸の草・山の松原・磯の岩 */}
       <KamakuraVegetation />
+
+      {/* 浜の笠懸：走る馬から的を射る、武士の日ごろの鍛錬（見て、わかる） */}
+      <MountedArcher x0={-14} z0={10.7} x1={14} z1={10.7} round period={7}
+        targets={[[-8, 11.9], [-1.5, 11.9], [6, 11.9]]} />
+
+      {/* 若宮大路をゆく人かげ（都のにぎわい。夜はやすむ） */}
+      <KWalker x={-1.6} mid={-1} amp={11} speed={0.021} phase={0.4} robe="#5a6a4a" kasa />
+      <KWalker x={0.3} mid={0} amp={12} speed={0.016} phase={2.6} robe="#6a5a6e" />
+      <KWalker x={1.7} mid={-2.5} amp={10} speed={0.025} phase={4.4} robe="#44566a" />
+
+      {/* 市の日（ふつかに一度、浜に市がたつ——三斎市のおもかげ） */}
+      <HamaIchi />
+
+      {/* 西の切通し：山を切りひらいた、谷戸の館への口 */}
+      <Kiridoshi />
+    </group>
+  )
+}
+
+// 浜の市。ふつかに一度（偶数日）だけ立つ——月に三度の定期市（三斎市）を五日に写す。
+// 見た目だけ（触れて学ぶのは谷戸の田と的場）。夜はしまう。
+function HamaIchi() {
+  const day = useGame(s => s.day)
+  const t = useGame(s => s.t)
+  if (day % 2 !== 0 || t >= 0.72) return null
+  const noRay = () => null
+  return (
+    <group raycast={noRay}>
+      {[{ x: -7.6, c: '#b8a06a', ry: 0.14 }, { x: -4.9, c: '#8a9a78', ry: -0.1 }].map((s, i) => (
+        <group key={i} position={[s.x, 0, 9.1]} rotation-y={s.ry}>
+          {/* 四本柱と布屋根 */}
+          {[[-0.85, -0.55], [0.85, -0.55], [-0.85, 0.55], [0.85, 0.55]].map(([dx, dz], k) => (
+            <mesh key={k} raycast={noRay} position={[dx, 0.8, dz]}>
+              <cylinderGeometry args={[0.045, 0.055, 1.6, 5]} /><meshLambertMaterial color="#7a6448" />
+            </mesh>
+          ))}
+          <mesh raycast={noRay} position={[0, 1.64, 0]} rotation-z={0.08}>
+            <boxGeometry args={[2.15, 0.06, 1.5]} /><meshLambertMaterial color={s.c} />
+          </mesh>
+          {/* 台 */}
+          <mesh raycast={noRay} position={[0, 0.4, 0]}>
+            <boxGeometry args={[1.7, 0.12, 1.0]} /><meshLambertMaterial color="#8a7458" />
+          </mesh>
+          {/* 品：米俵と壺 */}
+          <mesh raycast={noRay} position={[-0.4, 0.58, 0]} rotation-z={Math.PI / 2}>
+            <cylinderGeometry args={[0.16, 0.16, 0.55, 8]} /><meshLambertMaterial color="#c8b070" />
+          </mesh>
+          <mesh raycast={noRay} position={[0.15, 0.58, 0.15]} rotation-z={Math.PI / 2}>
+            <cylinderGeometry args={[0.15, 0.15, 0.5, 8]} /><meshLambertMaterial color="#bfa562" />
+          </mesh>
+          <mesh raycast={noRay} position={[0.55, 0.6, -0.12]}>
+            <sphereGeometry args={[0.16, 10, 8]} /><meshLambertMaterial color="#6a5a50" />
+          </mesh>
+          {/* あきんど（台のうしろに座す） */}
+          <group position={[0, 0, -0.95]}>
+            <mesh raycast={noRay} position={[0, 0.36, 0]}><coneGeometry args={[0.3, 0.72, 9]} /><meshLambertMaterial color={i ? '#5c5240' : '#4a5060'} /></mesh>
+            <mesh raycast={noRay} position={[0, 0.82, 0]}><sphereGeometry args={[0.15, 12, 10]} /><meshLambertMaterial color="#e8c8a8" /></mesh>
+          </group>
+        </group>
+      ))}
+    </group>
+  )
+}
+
+// 西の切通し。山を切りとおした細い口——鎌倉の出入りは、こうした切通しにかぎられた。
+// 岩の壁の当たりは pack の extra 円（±z の二丘）。門そのものは Gates の札と光が立つ。
+function Kiridoshi() {
+  const noRay = () => null
+  const rocks: { x: number; z: number; s: number; ry: number }[] = [
+    { x: -21.2, z: -9.9, s: 1.9, ry: 0.7 }, { x: -20.4, z: -10.6, s: 1.3, ry: 2.2 },
+    { x: -22.1, z: -9.2, s: 2.4, ry: 4.1 },
+    { x: -21.2, z: -6.1, s: 1.9, ry: 1.6 }, { x: -20.4, z: -5.4, s: 1.3, ry: 3.4 },
+    { x: -22.1, z: -6.8, s: 2.4, ry: 5.2 },
+  ]
+  return (
+    <group raycast={noRay}>
+      {/* 切りとおしの径（土がのぞく） */}
+      <mesh rotation-x={-Math.PI / 2} position={[-21, 0.006, -8]} raycast={noRay}>
+        <planeGeometry args={[4.6, 2.6]} />
+        <meshLambertMaterial color="#a08e68" />
+      </mesh>
+      {/* 両脇に立つ切り岸の岩 */}
+      {rocks.map((r, i) => (
+        <mesh key={i} position={[r.x, r.s * 0.62, r.z]} rotation-y={r.ry} scale={[r.s, r.s * 1.25, r.s * 0.8]} raycast={noRay}>
+          <icosahedronGeometry args={[1, 0]} />
+          <meshLambertMaterial color={i % 2 ? '#767263' : '#7f7b6c'} flatShading />
+        </mesh>
+      ))}
     </group>
   )
 }
@@ -198,8 +287,8 @@ function KamakuraVegetation() {
   return <primitive object={group} />
 }
 
-// 松と紅葉（鎌倉は日ごとの色替えはせず、静かに）
-function KTree({ x, z, kind, s }: { x: number; z: number; kind: 'maple' | 'pine'; s: number }) {
+// 松と紅葉（鎌倉は日ごとの色替えはせず、静かに）。谷戸の場面でも使う。
+export function KTree({ x, z, kind, s }: { x: number; z: number; kind: 'maple' | 'pine'; s: number }) {
   const blobs = kind === 'maple'
     ? [
         { dx: 0, dy: 2.4, dz: 0, r: 1.05, c: '#a8532a' },

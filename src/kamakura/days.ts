@@ -14,7 +14,7 @@ export const DAY_EVENTS: Record<number, DayEvent> = {
   1: {
     diaryLine: '鎌倉という、武家の都に来た。',
     facts: ['bushi'],
-    talkFacts: { warabe: 'sangyo' },
+    talkFacts: { warabe: 'sangyo', nomin: 'sangyo' },
   },
 
   2: {

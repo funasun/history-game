@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { getPack, getArea, setActiveEra, setAreaId } from './pack'
 import type { TLEvent } from './pack'
 import { loadSave, writeSave, clearSave } from '../engine/save'
-import { playerWorld, tapMark, koiCall, resetCam } from './live'
+import { playerWorld, tapMark, koiCall, resetCam, focusVision, releaseVision } from './live'
 import { pluck } from '../engine/ambience'
 
 export type Mode = 'home' | 'title' | 'prologue' | 'guide' | 'dialogue' | 'outfit' | 'roam' | 'letter' | 'diary' | 'epilogue'
@@ -36,6 +36,7 @@ interface GameState {
   learnedEvents: string[]          // 見た出来事（名所にふれて／栞から）
   diary: DiaryEntry[]
   dialogue: { lines: DialogueLine[]; i: number; then: Then } | null
+  vision: string | null                // 頁がひらいている名所（幻視の場面を演じる）
   target: [number, number] | null
   pending: string | null
   playerPos: [number, number]
@@ -117,6 +118,7 @@ export const useGame = create<GameState>((set, get) => ({
   learnedEvents: [],
   diary: [],
   dialogue: null,
+  vision: null,
   target: null,
   pending: null,
   playerPos: [-3, -6],
@@ -134,7 +136,8 @@ export const useGame = create<GameState>((set, get) => ({
   // ホームで篇をえらぶ：セーブ層も切り替え、その篇の扉（Title）へ
   chooseEra: (id) => {
     setActiveEra(id)
-    set({ mode: 'title', dialogue: null, area: getPack().homeArea })
+    releaseVision()
+    set({ mode: 'title', dialogue: null, vision: null, area: getPack().homeArea })
   },
 
   start: (fresh) => {
@@ -142,6 +145,8 @@ export const useGame = create<GameState>((set, get) => ({
     const save = fresh ? null : loadSave()
     setAreaId(pack.homeArea)
     resetCam()
+    releaseVision()
+    set({ vision: null })
     if (save) {
       const morning = pack.DAY_EVENTS[save.day]?.morning
       set({
@@ -184,9 +189,8 @@ export const useGame = create<GameState>((set, get) => ({
       setAreaId(gate.to)
       playerWorld.set(gate.spawn[0], 0, gate.spawn[1])
       useGame.setState({ area: gate.to, playerPos: gate.spawn, fade: false })
-      if (gate.to !== pack.homeArea) {
-        queueHint('machi', 'ここは都の大路。市や塔をたずね、人にも話しかけてみよう')
-      }
+      const hint = pack.areas[gate.to]?.arriveHint
+      if (hint) queueHint(`area:${gate.to}`, hint)
     }, 300)
   },
 
@@ -200,8 +204,8 @@ export const useGame = create<GameState>((set, get) => ({
 
   wake: () => set({ mode: 'dialogue', dialogue: { lines: getPack().WAKE_LINES, i: 0, then: 'outfit' } }),
 
-  toHome: () => { document.title = '時渡り草子'; set({ mode: 'home', dialogue: null }) },
-  toTitle: () => set({ mode: 'title', dialogue: null }),
+  toHome: () => { document.title = '時渡り草子'; releaseVision(); set({ mode: 'home', dialogue: null, vision: null }) },
+  toTitle: () => { releaseVision(); set({ mode: 'title', dialogue: null, vision: null }) },
   toGuide: () => set({ mode: 'guide', dialogue: null }),
 
   tick: (dt) => {
@@ -292,10 +296,11 @@ export const useGame = create<GameState>((set, get) => ({
     if (d.i + 1 < lines.length) {
       set({ dialogue: { ...d, lines, i: d.i + 1 } })
     } else {
-      if (d.then === 'outfit') set({ dialogue: null, mode: 'outfit' })
-      else if (d.then === 'letter') set({ dialogue: null, mode: 'letter' })
+      releaseVision()
+      if (d.then === 'outfit') set({ dialogue: null, vision: null, mode: 'outfit' })
+      else if (d.then === 'letter') set({ dialogue: null, vision: null, mode: 'letter' })
       else {
-        set({ dialogue: null, mode: 'roam' })
+        set({ dialogue: null, vision: null, mode: 'roam' })
         maybeEvening(set, get)
       }
     }
@@ -442,7 +447,7 @@ function maybeEvening(set: Set, get: Get) {
       setAreaId(pack.homeArea)
       playerWorld.set(pack.spawn[0], 0, pack.spawn[1])
       set({ area: pack.homeArea, playerPos: pack.spawn, nearby: null })
-      lines = [{ text: '日が暮れてきた。……邸へ、もどらなくちゃ。' }, ...ev.lines]
+      lines = [{ text: '日が暮れてきた。……もどらなくちゃ。' }, ...ev.lines]
     }
     set({
       dayEventDone: true, target: null, pending: null, mode: 'dialogue',
@@ -490,11 +495,19 @@ function resolve(id: string, set: Set, get: Get) {
     if (evs.some(e => pack.exam.some(q => q.eventId === e.id))) {
       lines.push({ speaker: 'わたし', text: '——あ、これ、テストに出てたやつだ。' })
     }
+    // 幻視：頁がひらくあいだ、名所の前で出来事が演じられる（篇が場面を持つときだけ）。
+    // カメラは「名所→接近点」の向きへ回りこみ、場面が正面にくる
+    const hasVision = !!pack.VisionMesh
+    if (hasVision) {
+      const yaw = Math.atan2(m.approach[0] - m.pos[0], m.approach[1] - m.pos[1])
+      focusVision(yaw, m.visionDist ?? 1)
+    }
     set({
       learnedEvents,
       pageToast: evs.length ? evs[0].title : null,
       mode: 'dialogue',
       dialogue: { lines, i: 0, then: 'roam' },
+      vision: hasVision ? m.id : null,
     })
     if (evs.length) queueHint('book', '右上の草子をひらくと、年表と持ちこんだ試験が読める')
     return
@@ -613,7 +626,8 @@ function maybeHints(get: Get) {
     queueHint('walk', '行きたい所をタップ（長押しでも、矢印キーでも）あるける')
     queueHint('touch', '光るものや人のそばへゆくと、下に札が出る——ふれてみよう')
     queueHint('cam', '右下の ⟲ ⟳ で、あたりを見まわせる')
-    if (getArea().gates.length) queueHint('gate', '南の門から、邸の外へも出られる')
+    const gh = getArea().gateHint
+    if (getArea().gates.length && gh) queueHint('gate', gh)
   }
   // 日が暮れたら、寝所へ
   if (s.t >= 0.7 && s.area === pack.homeArea) {

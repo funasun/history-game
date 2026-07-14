@@ -20,7 +20,19 @@ export function zoomCam(delta: number) {
 }
 // 空へ視点をあげて庭ぜんたいを見わたす。もう一度で地上へ
 export function toggleBird() { cam.birdGoal = cam.birdGoal > 0.5 ? 0 : 1 }
-export function resetCam() { cam.yaw = 0; cam.yawGoal = 0; cam.dist = 1; cam.distGoal = 1; cam.bird = 0; cam.birdGoal = 0 }
+export function resetCam() { cam.yaw = 0; cam.yawGoal = 0; cam.dist = 1; cam.distGoal = 1; cam.bird = 0; cam.birdGoal = 0; visionCam.on = false }
+
+// 幻視のカメラ誘導：名所の頁がひらくあいだ、演じられる場面へ視線をむける。
+// yaw は「名所→接近点」の向き（プレイヤーの背に回りこみ、名所が正面にくる）。
+// 終われば on を下ろすだけ——ユーザーの yawGoal へなめらかに帰ってゆく。
+export const visionCam = { on: false, yaw: 0, dist: 1 }
+export function focusVision(yaw: number, dist = 1) {
+  // いまの向きから近まわりで回りこむ（2πの巻きを畳む）
+  while (yaw - cam.yaw > Math.PI) yaw -= Math.PI * 2
+  while (yaw - cam.yaw < -Math.PI) yaw += Math.PI * 2
+  visionCam.on = true; visionCam.yaw = yaw; visionCam.dist = dist
+}
+export function releaseVision() { visionCam.on = false }
 
 // タップ移動の目印（地面に立つ小さな波紋）。t は残り時間
 export const tapMark = { x: 0, z: 0, t: 0 }

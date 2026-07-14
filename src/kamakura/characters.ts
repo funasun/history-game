@@ -30,6 +30,18 @@ export const CHARACTERS: CharacterDef[] = [
   },
 ]
 
-export const charById = (id: string) => CHARACTERS.find(c => c.id === id)!
+// 谷戸（切通しのむこう）に生きる人
+export const YATO_CHARACTERS: CharacterDef[] = [
+  {
+    // 農人：館の田をあずかる百姓。二毛作と市をよく知る。
+    id: 'nomin', name: '農人', figure: 'aruji',
+    robes: ['#6a5a40', '#c8b888'],
+    day: [8.2, 2.4], evening: [1.8, -1.4], scale: 1.6,
+  },
+]
+
+export const ALL_CHARACTERS = [...CHARACTERS, ...YATO_CHARACTERS]
+
+export const charById = (id: string) => ALL_CHARACTERS.find(c => c.id === id)!
 export const charPos = (c: CharacterDef, t: number): [number, number] =>
   t >= 0.62 ? c.evening : c.day

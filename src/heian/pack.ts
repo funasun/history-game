@@ -67,6 +67,7 @@ const TEI: AreaDef = {
     { id: 'minami', label: '都大路', pos: [3, 18.4], reach: 2.2, to: 'miyako', spawn: [9.4, 12.2] },
   ],
   hasBed: true,
+  gateHint: '南の門から、邸の外へも出られる',
 }
 
 // 場面：都大路（朱雀大路）
@@ -93,6 +94,7 @@ const MIYAKO: AreaDef = {
     { id: 'yashiki', label: '邸', pos: [10, 14.5], reach: 2.2, to: 'tei', spawn: [3, 15.8] },
   ],
   hasBed: false,
+  arriveHint: 'ここは都の大路。市や塔をたずね、人にも話しかけてみよう',
 }
 
 // 宵の絵日記：平安一日目だけの栞（文・草花・摂関・襲/寝殿）

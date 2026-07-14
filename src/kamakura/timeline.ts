@@ -96,6 +96,7 @@ export interface Landmark {
   scene: DialogueLine[]
   reach: number                // 中心からこの距離まで近づけば「ふれた」ことにする
   labelY: number               // 名前板（立て札）を出す高さ
+  visionDist?: number          // 幻視のあいだのカメラの引き（遠くの海の場面は広く）
 }
 
 export const LANDMARKS: Landmark[] = [
@@ -149,7 +150,7 @@ export const LANDMARKS: Landmark[] = [
   {
     id: 'sea', label: '由比ヶ浜', kind: 'sea',
     pos: [0, 15.5], approach: [0, 11.6],
-    reach: 4.6, labelY: 7.0,
+    reach: 4.6, labelY: 7.0, visionDist: 1.35,
     events: ['genko', 'horobi'],
     scene: [
       { text: '渚の鳥居に立つと、潮騒が頁をめくった。' },

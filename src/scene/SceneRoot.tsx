@@ -9,7 +9,8 @@ import { getPack } from '../game/pack'
 import { World } from './World'
 import { Player, Characters, Flowers, Bed, Landmarks, GuideMote, Gates, Spots, TapMark } from './actors'
 import { Life } from './Life'
-import { playerWorld, drive, clampDt, cam } from '../game/live'
+import { playerWorld, drive, clampDt, cam, visionCam } from '../game/live'
+import { Visions } from './Visions'
 import { toTexture, cloudCanvas } from '../engine/textures'
 
 const noRaycast = () => null
@@ -177,10 +178,14 @@ function CameraRig() {
   const camera = useThree(s => s.camera)
   const size = useThree(s => s.size)
   useFrame(() => {
-    // 見まわし（45°刻み）・引き・俯瞰へ、なめらかに寄る
-    cam.yaw += (cam.yawGoal - cam.yaw) * 0.08
-    cam.dist += (cam.distGoal - cam.dist) * 0.08
-    cam.bird += (cam.birdGoal - cam.bird) * 0.06
+    // 見まわし（45°刻み）・引き・俯瞰へ、なめらかに寄る。
+    // 幻視（名所の頁）がひらいているあいだは、演じられる場面の正面へ回りこむ
+    const yawGoal = visionCam.on ? visionCam.yaw : cam.yawGoal
+    const distGoal = visionCam.on ? visionCam.dist : cam.distGoal
+    const birdGoal = visionCam.on ? 0 : cam.birdGoal
+    cam.yaw += (yawGoal - cam.yaw) * 0.08
+    cam.dist += (distGoal - cam.dist) * 0.08
+    cam.bird += (birdGoal - cam.bird) * 0.06
     // 場面替え（遠くへ跳んだ）なら追いかけず、すぐ切り替える
     if (look.distanceTo(playerWorld) > 18) look.copy(playerWorld)
     else look.lerp(playerWorld, 0.07)
@@ -262,6 +267,7 @@ export function SceneRoot() {
         <Bed />
         <Gates />
         <Spots />
+        <Visions />
         <Player />
         <GuideMote />
         <Life />

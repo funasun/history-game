@@ -93,6 +93,35 @@ export function getDialogue(charId: string, ctx: DialogueCtx): DialogueLine[] {
         { speaker: '尼御台', text: '……それでも、生きた日々は消えはせぬ。' },
       ]
 
+    case 'nomin':
+      if (ctx.day <= 1) {
+        if (n === 0) return [
+          { speaker: '農人', text: 'おや、切通しをこえて来なすったか。' },
+          { speaker: '農人', text: 'わしは館の田をあずかる百姓よ。' },
+          { speaker: '農人', text: '秋に米を刈って、いまは麦を育てておる。' },
+          { speaker: '農人', text: 'おなじ田で年に二度——二毛作というんじゃ。' },
+        ]
+        return [
+          { speaker: '農人', text: '草木を焼いた灰をまくと、麦がよう育つでな。' },
+        ]
+      }
+      if (ctx.day === 2) return [
+        { speaker: '農人', text: '館の殿さまは、この谷戸の田畑を治めておられる。' },
+        { speaker: '農人', text: '朝な夕なの蹄の音は、的場のお稽古よ。' },
+      ]
+      if (ctx.day === 3) return [
+        { speaker: '農人', text: '鉄の鍬に、牛や馬。田おこしも楽になっての。' },
+        { speaker: '農人', text: 'とれ高は、じいさまの頃よりずんとふえた。' },
+      ]
+      if (ctx.day === 4) return [
+        { speaker: '農人', text: '刈った麦は、浜の市で銭にかわる。' },
+        { speaker: '農人', text: '宋銭というての、海のむこうから来た銭じゃよ。' },
+      ]
+      return [
+        { speaker: '農人', text: '戦のあとは、年貢が重うなるばかりでの……。' },
+        { speaker: '農人', text: 'それでも田は、うらぎらぬ。今日も麦の世話よ。' },
+      ]
+
     case 'warabe':
       if (ctx.day <= 1) {
         if (n === 0) return [

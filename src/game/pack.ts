@@ -20,6 +20,8 @@ export interface Landmark {
   // reach: 名所の中心からこの距離まで近づけば「ふれた」ことにする（当たり円より広い）
   // labelY: 立て札（名前板）を出す高さ。屋根や台座の上に浮かせて読ませる。
   reach: number; labelY: number
+  // 頁がひらくあいだ（幻視）のカメラの引き。遠くの海に船を並べる場面などは広く
+  visionDist?: number
 }
 
 export interface Fact { id: string; tag: string; short: string; deep: string }
@@ -53,6 +55,10 @@ export interface AreaDef {
   SPOTS: Spot[]
   gates: Gate[]
   hasBed: boolean
+  // この場面に着いたとき一度だけ出すヒント（門をくぐった直後）
+  arriveHint?: string
+  // この場面に門があることを知らせる初日ヒント（住まいの場面に置く）
+  gateHint?: string
 }
 
 // 持ちこんだ試験の一問。eventId の出来事を「見た」ら、答案のこたえが埋まる。
@@ -117,6 +123,9 @@ export interface Pack {
   BED_EARLY: DialogueLine[]
   // 3D と色
   LandmarkMesh: ComponentType<{ kind: string }>
+  // 幻視：名所の頁がひらいているあいだ、その場で演じられる場面（id=名所、i=いまの行）。
+  // 文字だけでなく、人の動きで出来事を見せる（読ませない、の立体版）
+  VisionMesh?: ComponentType<{ id: string; i: number }>
   skyColor: (t: number) => string
   tintColor: (t: number) => string
   // 篇ごとの仕様
