@@ -155,11 +155,13 @@ export interface Pack {
 
 import { heianPack } from '../heian/pack'
 import { kamakuraPack } from '../kamakura/pack'
+import { muromachiPack } from '../muromachi/pack'
 import { setSaveEra } from '../engine/save'
 
 export const PACKS: Record<string, Pack> = {
   heian: heianPack,
   kamakura: kamakuraPack,
+  muromachi: muromachiPack,
 }
 
 let activeId = 'heian'
